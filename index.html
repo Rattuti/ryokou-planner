@@ -1,0 +1,893 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>家族旅行プランナー</title>
+<style>
+  :root {
+    --bg: #f7f3f0;
+    --panel: #ffffff;
+    --border: #e8ddd4;
+    --text: #2e2620;
+    --muted: #7a6f66;
+    --accent: #c4623f;
+    --accent-dark: #9c4a2e;
+    --keep: #4f8f6a;
+    --consider: #c99a3f;
+    --letgo: #b3546b;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Yu Gothic", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    padding: 24px;
+  }
+  h1 { font-size: 1.5rem; margin: 0 0 4px; }
+  .subtitle { color: var(--muted); margin: 0 0 12px; font-size: 0.9rem; }
+  .layout { display: grid; grid-template-columns: 1fr; gap: 16px; max-width: 1040px; margin: 0 auto; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+  }
+  .panel h2 { font-size: 1rem; margin: 0 0 4px; }
+  .panel .desc { font-size: 0.82rem; color: var(--muted); margin: 0 0 14px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .row.between { justify-content: space-between; }
+  select, input[type=text], input[type=number], input[type=date], button {
+    font: inherit;
+    padding: 6px 10px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #fff;
+  }
+  button { cursor: pointer; background: var(--accent); color: #fff; border: none; }
+  button:hover { background: var(--accent-dark); }
+  button.secondary { background: #fff; color: var(--text); border: 1px solid var(--border); }
+  .hint { font-size: 0.8rem; color: var(--muted); margin-top: 8px; }
+  .hint.sync-error { color: var(--letgo); }
+
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+  .stat { background: var(--bg); border-radius: 8px; padding: 12px 14px; }
+  .stat .label { font-size: 0.78rem; color: var(--muted); }
+  .stat .value { font-size: 1.25rem; font-weight: 700; margin-top: 4px; font-variant-numeric: tabular-nums; }
+
+  .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-bottom: 10px; }
+  .form-grid label { display: flex; flex-direction: column; gap: 4px; font-size: 0.78rem; color: var(--muted); }
+  .form-grid select, .form-grid input { width: 100%; }
+
+  .table-wrap { max-height: 380px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; margin-top: 10px; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+  th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--panel); }
+  td.name-cell { white-space: normal; max-width: 180px; font-weight: 500; }
+  .badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; color: #fff; font-weight: 600;
+  }
+  .status-select { font-size: 0.8rem; padding: 4px 6px; }
+  .rm-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 0.85rem; padding: 2px 6px; }
+  .rm-btn:hover { color: var(--letgo); }
+  .empty { color: var(--muted); text-align: center; padding: 20px 0; font-size: 0.88rem; }
+  .research-link { color: var(--accent-dark); font-size: 0.8rem; text-decoration: none; font-weight: 600; }
+  .research-link:hover { text-decoration: underline; }
+
+  .chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: var(--bg); border-radius: 999px; padding: 4px 6px 4px 12px; font-size: 0.85rem;
+  }
+  .chip .rm { background: none; border: none; color: var(--muted); cursor: pointer; padding: 2px 6px; border-radius: 50%; font-size: 0.8rem; }
+  .chip .rm:hover { color: var(--letgo); }
+
+  .deal-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .deal-row:last-child { border-bottom: none; }
+  .deal-name { font-size: 0.88rem; }
+
+  /* calendar */
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 10px; }
+  .cal-dow { text-align: center; font-size: 0.75rem; color: var(--muted); padding: 2px 0; }
+  .cal-day { border: 1px solid var(--border); border-radius: 6px; min-height: 64px; padding: 4px; font-size: 0.75rem; }
+  .cal-day.empty { border: none; }
+  .cal-day .d-num { font-size: 0.75rem; color: var(--muted); }
+  .cal-tag { display: block; border-radius: 4px; padding: 1px 4px; margin-top: 2px; font-size: 0.68rem; color: #fff; line-height: 1.3; }
+  .cal-tag.花火大会 { background: var(--letgo); }
+  .cal-tag.祭り・イベント { background: var(--consider); }
+  .cal-tag.観光・施設情報 { background: var(--accent); }
+  .cal-tag.その他 { background: #9ca3af; }
+
+  /* mobile: tables become stacked cards */
+  @media (max-width: 600px) {
+    body { padding: 14px; }
+    .table-wrap { overflow: visible; max-height: none; border: none; }
+    table, thead, tbody { display: block; width: 100%; }
+    thead { display: none; }
+    tr { display: block; }
+    tbody tr {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+    td { display: block; width: 100%; border-bottom: none; padding: 6px 0; white-space: normal; }
+    td.name-cell { font-size: 1rem; font-weight: 700; max-width: none; padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1px solid var(--border); }
+    td[data-label]::before {
+      content: attr(data-label);
+      display: block;
+      font-size: 0.72rem;
+      color: var(--muted);
+      margin-bottom: 2px;
+    }
+    td select, td input { width: 100%; box-sizing: border-box; }
+    .status-select, button { min-height: 40px; }
+    .cal-day { min-height: 44px; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <div>
+    <h1>家族旅行プランナー</h1>
+    <p class="subtitle">費用・ホテル・経路・お得情報・イベントカレンダーをまとめて管理します。</p>
+    <p class="hint" id="syncStatus" style="margin-top:0;"></p>
+  </div>
+
+  <div class="panel">
+    <h2>費用の概要</h2>
+    <div class="stats">
+      <div class="stat"><div class="label">宿泊費</div><div class="value" id="statHotel">¥0</div></div>
+      <div class="stat"><div class="label">交通費(経路)</div><div class="value" id="statRoute">¥0</div></div>
+      <div class="stat"><div class="label">その他費用</div><div class="value" id="statExpense">¥0</div></div>
+      <div class="stat"><div class="label" style="color:var(--accent-dark);">合計</div><div class="value" id="statTotal" style="color:var(--accent-dark);">¥0</div></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>ホテル比較</h2>
+    <p class="desc">候補ホテルを記録して比較できます。実際の予約・決済はご利用の予約サイトで行ってください。</p>
+    <div class="form-grid">
+      <label>ホテル名<input type="text" id="hotelName" placeholder="例: ○○リゾートホテル"></label>
+      <label>料金(円)<input type="number" id="hotelPrice" placeholder="例: 25000"></label>
+      <label>チェックイン<input type="date" id="hotelCheckin"></label>
+      <label>チェックアウト<input type="date" id="hotelCheckout"></label>
+      <label>人数<input type="number" id="hotelGuests" placeholder="例: 4"></label>
+    </div>
+    <button type="button" id="addHotelBtn">追加</button>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ホテル名</th><th>料金</th><th>宿泊日程</th><th>人数</th><th>ステータス</th><th>検索</th><th></th></tr></thead>
+        <tbody id="hotelBody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="hotelEmpty">まだホテルが登録されていません</div>
+  </div>
+
+  <div class="panel">
+    <h2>経路・移動手段の比較</h2>
+    <p class="desc">飛行機・新幹線・車など、複数の移動手段の費用と所要時間を比較できます。</p>
+    <div class="form-grid">
+      <label>経路名<input type="text" id="routeName" placeholder="例: 自宅→○○駅"></label>
+      <label>手段<select id="routeMethod"></select></label>
+      <label>費用(円)<input type="number" id="routeCost" placeholder="例: 12000"></label>
+      <label>所要時間(分)<input type="number" id="routeMinutes" placeholder="例: 180"></label>
+    </div>
+    <button type="button" id="addRouteBtn">追加</button>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>経路名</th><th>手段</th><th>費用</th><th>所要時間</th><th></th></tr></thead>
+        <tbody id="routeBody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="routeEmpty">まだ経路が登録されていません</div>
+  </div>
+
+  <div class="panel">
+    <h2>その他の費用項目</h2>
+    <p class="desc">食費・観光費・お土産など、ホテル・経路以外の費用を記録します。</p>
+    <div class="form-grid">
+      <label>項目名<input type="text" id="expenseName" placeholder="例: 水族館の入場料"></label>
+      <label>カテゴリ<select id="expenseCategory"></select></label>
+      <label>金額(円)<input type="number" id="expenseAmount" placeholder="例: 8000"></label>
+    </div>
+    <button type="button" id="addExpenseBtn">追加</button>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>項目名</th><th>カテゴリ</th><th>金額</th><th></th></tr></thead>
+        <tbody id="expenseBody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="expenseEmpty">まだ費用項目が登録されていません</div>
+  </div>
+
+  <div class="panel">
+    <h2>お得情報チェック</h2>
+    <p class="desc">一般的なカテゴリの例です。具体的な制度名・条件・対象期間は各サービスの公式情報をご確認ください。自由に項目の追加・削除もできます。</p>
+    <div id="dealList"></div>
+    <div class="row" style="margin-top:8px;">
+      <input type="text" id="dealInput" placeholder="項目を追加(例: ○○旅行会社のクーポン)">
+      <button type="button" class="secondary" id="addDealBtn">追加</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h2>イベントカレンダー</h2>
+    <p class="desc">花火大会や旅行先の観光イベントなど、自分で調べた情報を登録するとカレンダー上で確認できます(実際の開催有無・日程は必ず公式情報でご確認ください)。</p>
+    <div class="form-grid">
+      <label>名称<input type="text" id="eventName" placeholder="例: ○○花火大会"></label>
+      <label>日付<input type="date" id="eventDate"></label>
+      <label>カテゴリ<select id="eventCategory"></select></label>
+      <label>メモ<input type="text" id="eventNote" placeholder="任意"></label>
+    </div>
+    <button type="button" id="addEventBtn">追加</button>
+
+    <div class="row" style="margin-top:16px; align-items:center;">
+      <button type="button" class="secondary" id="calPrevBtn">◀ 前月</button>
+      <div id="calMonthLabel" style="font-weight:600; min-width:110px; text-align:center;"></div>
+      <button type="button" class="secondary" id="calNextBtn">次月 ▶</button>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="hint" id="eventListHint" style="margin-top:10px;"></div>
+    <div id="eventList"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  "use strict";
+
+  // ---------- Notion sync ----------
+  var NOTION_ENABLED = !!(window.claude && window.claude.mcp);
+  var NOTION_SERVER = "Notion";
+  var DS = {
+    events: { id: "669546e7-0a8a-4b6e-a8fb-302b0bfcc68b", view: "view://5ce71963-53f0-4504-bb15-e610149e7366" },
+    hotels: { id: "3ed3313d-1bbf-40f8-86d8-717ad93c2790", view: "view://1e9ba44b-90d9-4348-8a4c-67c0319207c4" },
+    routes: { id: "d61c8a92-1053-418c-9969-fff2456cb3a1", view: "view://1f1b3e4a-b75d-4886-92e1-587c43aa397b" },
+    expenses: { id: "57fc7af1-59f3-4041-872f-5605bebf8f15", view: "view://5b9e210a-cf8a-400f-b977-7a11f6bcdb97" },
+    deals: { id: "1fd687b6-ff81-47be-9108-0a10bc5f63f0", view: "view://5995b4b4-660c-40cc-ba7b-e3be944d346c" }
+  };
+
+  var EVENT_CATEGORIES = ["花火大会", "祭り・イベント", "観光・施設情報", "その他"];
+  var ROUTE_METHODS = ["飛行機", "新幹線", "在来線", "車", "バス", "その他"];
+  var EXPENSE_CATEGORIES = ["宿泊費", "交通費", "食費", "観光費", "お土産", "その他"];
+  var HOTEL_STATUS_OPTIONS = ["検討中", "予約済み", "見送り"];
+  var HOTEL_STATUS_COLOR = { "検討中": "var(--consider)", "予約済み": "var(--keep)", "見送り": "var(--letgo)" };
+  var DEAL_STATUS_OPTIONS = ["未検討", "検討中", "活用予定", "対象外"];
+  var DEAL_STATUS_COLOR = { "未検討": "#9ca3af", "検討中": "var(--consider)", "活用予定": "var(--keep)", "対象外": "var(--letgo)" };
+  var DEFAULT_DEAL_ITEMS = [
+    "早期予約割引",
+    "家族割・ファミリープラン",
+    "旅行会社のクーポン・キャンペーン",
+    "ふるさと納税の返礼品(宿泊券等)",
+    "高速道路のETC割引・休日割引",
+    "地域の観光施設の割引券・クーポン",
+    "クレジットカード・ポイントサイトの旅行特典"
+  ];
+
+  function extractPageId(url) {
+    var m = /([0-9a-f]{32})(?:\?.*)?$/i.exec(url || "");
+    return m ? m[1] : null;
+  }
+
+  function setSyncStatus(text, isError) {
+    var el = document.getElementById("syncStatus");
+    el.textContent = text;
+    el.className = "hint" + (isError ? " sync-error" : "");
+  }
+
+  function queryAllViewRows(viewUrl) {
+    function fetchPage(cursor) {
+      var input = { view_url: viewUrl, page_size: 100 };
+      if (cursor) input.start_cursor = cursor;
+      return window.claude.mcp.callTool(NOTION_SERVER, "notion-query-database-view", input).then(function (res) {
+        var payload = res.payload || {};
+        var rows = payload.results || [];
+        if (payload.has_more && payload.next_cursor) {
+          return fetchPage(payload.next_cursor).then(function (rest) { return rows.concat(rest); });
+        }
+        return rows;
+      });
+    }
+    return fetchPage(null);
+  }
+
+  function notionCreate(dsId, properties) {
+    return window.claude.mcp.callTool(NOTION_SERVER, "notion-create-pages", {
+      parent: { type: "data_source_id", data_source_id: dsId },
+      pages: [{ properties: properties }]
+    });
+  }
+
+  function notionUpdate(pageId, properties) {
+    if (!pageId) return Promise.resolve();
+    return window.claude.mcp.callTool(NOTION_SERVER, "notion-update-page", {
+      page_id: pageId,
+      command: "update_properties",
+      properties: properties
+    });
+  }
+
+  function notionSoftDelete(pageId) {
+    return notionUpdate(pageId, { "削除済み": "__YES__" });
+  }
+
+  function formatYen(n) {
+    if (typeof n !== "number" || isNaN(n)) return "¥0";
+    return "¥" + Math.round(n).toLocaleString("ja-JP");
+  }
+
+  // ---------- App state ----------
+  var state = { events: [], hotels: [], routes: [], expenses: [], deals: [] };
+  var nextTempId = 1;
+  var calView = (function () { var d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }; })();
+
+  // ---------- Events ----------
+  function eventRowToItem(row) {
+    var pageId = extractPageId(row.url);
+    return {
+      id: pageId, notionId: pageId,
+      name: row["名称"] || "",
+      date: row["date:日付:start"] || "",
+      category: row["カテゴリ"] || "その他",
+      note: row["メモ"] || ""
+    };
+  }
+  function loadEvents() {
+    return queryAllViewRows(DS.events.view).then(function (rows) {
+      return rows.filter(function (r) { return r["削除済み"] !== "__YES__"; }).map(eventRowToItem);
+    });
+  }
+
+  // ---------- Hotels ----------
+  function hotelRowToItem(row) {
+    var pageId = extractPageId(row.url);
+    return {
+      id: pageId, notionId: pageId,
+      name: row["ホテル名"] || "",
+      price: typeof row["料金"] === "number" ? row["料金"] : null,
+      checkin: row["date:チェックイン:start"] || "",
+      checkout: row["date:チェックアウト:start"] || "",
+      guests: typeof row["人数"] === "number" ? row["人数"] : null,
+      note: row["メモ"] || "",
+      status: row["決定ステータス"] || "検討中"
+    };
+  }
+  function hotelToProps(h) {
+    var props = {
+      "ホテル名": h.name, "料金": h.price, "人数": h.guests,
+      "メモ": h.note || "", "決定ステータス": h.status
+    };
+    if (h.checkin) props["date:チェックイン:start"] = h.checkin;
+    if (h.checkout) props["date:チェックアウト:start"] = h.checkout;
+    return props;
+  }
+  function loadHotels() {
+    return queryAllViewRows(DS.hotels.view).then(function (rows) {
+      return rows.filter(function (r) { return r["削除済み"] !== "__YES__"; }).map(hotelRowToItem);
+    });
+  }
+  function buildHotelSearchUrl(name) {
+    return "https://www.google.com/search?q=" + encodeURIComponent(name + " 予約 ホテル");
+  }
+
+  // ---------- Routes ----------
+  function routeRowToItem(row) {
+    var pageId = extractPageId(row.url);
+    return {
+      id: pageId, notionId: pageId,
+      name: row["経路名"] || "",
+      method: row["手段"] || ROUTE_METHODS[0],
+      cost: typeof row["費用"] === "number" ? row["費用"] : null,
+      minutes: typeof row["所要時間_分"] === "number" ? row["所要時間_分"] : null,
+      note: row["メモ"] || ""
+    };
+  }
+  function loadRoutes() {
+    return queryAllViewRows(DS.routes.view).then(function (rows) {
+      return rows.filter(function (r) { return r["削除済み"] !== "__YES__"; }).map(routeRowToItem);
+    });
+  }
+
+  // ---------- Expenses ----------
+  function expenseRowToItem(row) {
+    var pageId = extractPageId(row.url);
+    return {
+      id: pageId, notionId: pageId,
+      name: row["項目名"] || "",
+      category: row["カテゴリ"] || "その他",
+      amount: typeof row["金額"] === "number" ? row["金額"] : null,
+      note: row["メモ"] || ""
+    };
+  }
+  function loadExpenses() {
+    return queryAllViewRows(DS.expenses.view).then(function (rows) {
+      return rows.filter(function (r) { return r["削除済み"] !== "__YES__"; }).map(expenseRowToItem);
+    });
+  }
+
+  // ---------- Deals ----------
+  function dealRowToItem(row) {
+    var pageId = extractPageId(row.url);
+    return { id: pageId, notionId: pageId, name: row["項目名"] || "", status: row["状態"] || "未検討" };
+  }
+  function loadDeals() {
+    return queryAllViewRows(DS.deals.view).then(function (rows) {
+      return rows.filter(function (r) { return r["削除済み"] !== "__YES__"; }).map(dealRowToItem).filter(function (d) { return d.name; });
+    });
+  }
+
+  // ---------- Rendering ----------
+  function renderStats() {
+    var hotelTotal = state.hotels.filter(function (h) { return h.status !== "見送り"; })
+      .reduce(function (sum, h) { return sum + (h.price || 0); }, 0);
+    var routeTotal = state.routes.reduce(function (sum, r) { return sum + (r.cost || 0); }, 0);
+    var expenseTotal = state.expenses.reduce(function (sum, e) { return sum + (e.amount || 0); }, 0);
+    document.getElementById("statHotel").textContent = formatYen(hotelTotal);
+    document.getElementById("statRoute").textContent = formatYen(routeTotal);
+    document.getElementById("statExpense").textContent = formatYen(expenseTotal);
+    document.getElementById("statTotal").textContent = formatYen(hotelTotal + routeTotal + expenseTotal);
+  }
+
+  function renderHotels() {
+    var body = document.getElementById("hotelBody");
+    body.innerHTML = "";
+    document.getElementById("hotelEmpty").style.display = state.hotels.length ? "none" : "block";
+    var sorted = state.hotels.slice().sort(function (a, b) { return (a.price || Infinity) - (b.price || Infinity); });
+    sorted.forEach(function (h) {
+      var tr = document.createElement("tr");
+
+      var tdName = document.createElement("td");
+      tdName.className = "name-cell"; tdName.textContent = h.name;
+
+      var tdPrice = document.createElement("td");
+      tdPrice.setAttribute("data-label", "料金"); tdPrice.textContent = formatYen(h.price);
+
+      var tdDates = document.createElement("td");
+      tdDates.setAttribute("data-label", "宿泊日程");
+      tdDates.textContent = (h.checkin || "-") + " 〜 " + (h.checkout || "-");
+
+      var tdGuests = document.createElement("td");
+      tdGuests.setAttribute("data-label", "人数");
+      tdGuests.textContent = h.guests != null ? h.guests + "人" : "-";
+
+      var tdStatus = document.createElement("td");
+      tdStatus.setAttribute("data-label", "ステータス");
+      var statusSelect = document.createElement("select");
+      statusSelect.className = "status-select";
+      HOTEL_STATUS_OPTIONS.forEach(function (s) {
+        var opt = document.createElement("option"); opt.value = s; opt.textContent = s;
+        if (s === h.status) opt.selected = true;
+        statusSelect.appendChild(opt);
+      });
+      statusSelect.addEventListener("change", function () {
+        h.status = statusSelect.value;
+        renderAll();
+        if (NOTION_ENABLED) notionUpdate(h.notionId, { "決定ステータス": h.status }).catch(function (err) {
+          setSyncStatus("ホテルステータスの同期に失敗しました(" + (err && err.code) + ")", true);
+        });
+      });
+      tdStatus.appendChild(statusSelect);
+      var dot = document.createElement("span");
+      dot.className = "badge"; dot.style.background = HOTEL_STATUS_COLOR[h.status] || "#999";
+      dot.style.marginLeft = "6px"; dot.textContent = " ";
+      tdStatus.appendChild(dot);
+
+      var tdSearch = document.createElement("td");
+      var link = document.createElement("a");
+      link.className = "research-link"; link.href = buildHotelSearchUrl(h.name);
+      link.target = "_blank"; link.rel = "noopener noreferrer";
+      link.textContent = "検索 →";
+      tdSearch.appendChild(link);
+
+      var tdRm = document.createElement("td");
+      var rmBtn = document.createElement("button");
+      rmBtn.className = "rm-btn"; rmBtn.type = "button"; rmBtn.textContent = "削除";
+      rmBtn.addEventListener("click", function () {
+        state.hotels = state.hotels.filter(function (x) { return x.id !== h.id; });
+        renderAll();
+        if (NOTION_ENABLED) notionSoftDelete(h.notionId).catch(function (err) {
+          setSyncStatus("ホテルの削除の同期に失敗しました(" + (err && err.code) + ")", true);
+        });
+      });
+      tdRm.appendChild(rmBtn);
+
+      tr.appendChild(tdName); tr.appendChild(tdPrice); tr.appendChild(tdDates);
+      tr.appendChild(tdGuests); tr.appendChild(tdStatus); tr.appendChild(tdSearch); tr.appendChild(tdRm);
+      body.appendChild(tr);
+    });
+  }
+
+  function renderRoutes() {
+    var body = document.getElementById("routeBody");
+    body.innerHTML = "";
+    document.getElementById("routeEmpty").style.display = state.routes.length ? "none" : "block";
+    var sorted = state.routes.slice().sort(function (a, b) { return (a.cost || Infinity) - (b.cost || Infinity); });
+    sorted.forEach(function (r) {
+      var tr = document.createElement("tr");
+
+      var tdName = document.createElement("td");
+      tdName.className = "name-cell"; tdName.textContent = r.name;
+
+      var tdMethod = document.createElement("td");
+      tdMethod.setAttribute("data-label", "手段"); tdMethod.textContent = r.method;
+
+      var tdCost = document.createElement("td");
+      tdCost.setAttribute("data-label", "費用"); tdCost.textContent = formatYen(r.cost);
+
+      var tdMinutes = document.createElement("td");
+      tdMinutes.setAttribute("data-label", "所要時間");
+      tdMinutes.textContent = r.minutes != null ? r.minutes + "分" : "-";
+
+      var tdRm = document.createElement("td");
+      var rmBtn = document.createElement("button");
+      rmBtn.className = "rm-btn"; rmBtn.type = "button"; rmBtn.textContent = "削除";
+      rmBtn.addEventListener("click", function () {
+        state.routes = state.routes.filter(function (x) { return x.id !== r.id; });
+        renderAll();
+        if (NOTION_ENABLED) notionSoftDelete(r.notionId).catch(function (err) {
+          setSyncStatus("経路の削除の同期に失敗しました(" + (err && err.code) + ")", true);
+        });
+      });
+      tdRm.appendChild(rmBtn);
+
+      tr.appendChild(tdName); tr.appendChild(tdMethod); tr.appendChild(tdCost); tr.appendChild(tdMinutes); tr.appendChild(tdRm);
+      body.appendChild(tr);
+    });
+  }
+
+  function renderExpenses() {
+    var body = document.getElementById("expenseBody");
+    body.innerHTML = "";
+    document.getElementById("expenseEmpty").style.display = state.expenses.length ? "none" : "block";
+    state.expenses.forEach(function (e) {
+      var tr = document.createElement("tr");
+
+      var tdName = document.createElement("td");
+      tdName.className = "name-cell"; tdName.textContent = e.name;
+
+      var tdCat = document.createElement("td");
+      tdCat.setAttribute("data-label", "カテゴリ"); tdCat.textContent = e.category;
+
+      var tdAmount = document.createElement("td");
+      tdAmount.setAttribute("data-label", "金額"); tdAmount.textContent = formatYen(e.amount);
+
+      var tdRm = document.createElement("td");
+      var rmBtn = document.createElement("button");
+      rmBtn.className = "rm-btn"; rmBtn.type = "button"; rmBtn.textContent = "削除";
+      rmBtn.addEventListener("click", function () {
+        state.expenses = state.expenses.filter(function (x) { return x.id !== e.id; });
+        renderAll();
+        if (NOTION_ENABLED) notionSoftDelete(e.notionId).catch(function (err) {
+          setSyncStatus("費用項目の削除の同期に失敗しました(" + (err && err.code) + ")", true);
+        });
+      });
+      tdRm.appendChild(rmBtn);
+
+      tr.appendChild(tdName); tr.appendChild(tdCat); tr.appendChild(tdAmount); tr.appendChild(tdRm);
+      body.appendChild(tr);
+    });
+  }
+
+  function renderDeals() {
+    var wrap = document.getElementById("dealList");
+    wrap.innerHTML = "";
+    state.deals.forEach(function (d) {
+      var row = document.createElement("div");
+      row.className = "deal-row";
+      var name = document.createElement("span");
+      name.className = "deal-name"; name.textContent = d.name;
+
+      var right = document.createElement("div");
+      right.className = "row";
+      var select = document.createElement("select");
+      select.className = "status-select";
+      DEAL_STATUS_OPTIONS.forEach(function (s) {
+        var opt = document.createElement("option"); opt.value = s; opt.textContent = s;
+        if (s === d.status) opt.selected = true;
+        select.appendChild(opt);
+      });
+      select.addEventListener("change", function () {
+        d.status = select.value; renderAll();
+        if (NOTION_ENABLED) notionUpdate(d.notionId, { "状態": d.status }).catch(function (err) {
+          setSyncStatus("お得情報の同期に失敗しました(" + (err && err.code) + ")", true);
+        });
+      });
+      var badge = document.createElement("span");
+      badge.className = "badge"; badge.style.background = DEAL_STATUS_COLOR[d.status] || "#999";
+      badge.textContent = " ";
+
+      var rm = document.createElement("button");
+      rm.type = "button"; rm.className = "rm-btn"; rm.textContent = "削除";
+      rm.addEventListener("click", function () {
+        state.deals = state.deals.filter(function (x) { return x.id !== d.id; });
+        renderAll();
+        if (NOTION_ENABLED) notionSoftDelete(d.notionId).catch(function (err) {
+          setSyncStatus("お得情報の削除の同期に失敗しました(" + (err && err.code) + ")", true);
+        });
+      });
+
+      right.appendChild(badge); right.appendChild(select); right.appendChild(rm);
+      row.appendChild(name); row.appendChild(right);
+      wrap.appendChild(row);
+    });
+  }
+
+  // ---------- Calendar ----------
+  var DOW_LABELS = ["日", "月", "火", "水", "木", "金", "土"];
+  function pad2(n) { return (n < 10 ? "0" : "") + n; }
+  function ymd(y, m, d) { return y + "-" + pad2(m + 1) + "-" + pad2(d); }
+
+  function renderCalendar() {
+    document.getElementById("calMonthLabel").textContent = calView.year + "年" + (calView.month + 1) + "月";
+    var grid = document.getElementById("calGrid");
+    grid.innerHTML = "";
+    DOW_LABELS.forEach(function (label) {
+      var el = document.createElement("div");
+      el.className = "cal-dow"; el.textContent = label;
+      grid.appendChild(el);
+    });
+
+    var firstDow = new Date(calView.year, calView.month, 1).getDay();
+    var daysInMonth = new Date(calView.year, calView.month + 1, 0).getDate();
+
+    var eventsByDate = {};
+    state.events.forEach(function (ev) {
+      if (!ev.date) return;
+      if (!eventsByDate[ev.date]) eventsByDate[ev.date] = [];
+      eventsByDate[ev.date].push(ev);
+    });
+
+    for (var i = 0; i < firstDow; i++) {
+      var blank = document.createElement("div");
+      blank.className = "cal-day empty";
+      grid.appendChild(blank);
+    }
+    for (var d = 1; d <= daysInMonth; d++) {
+      var cell = document.createElement("div");
+      cell.className = "cal-day";
+      var num = document.createElement("div");
+      num.className = "d-num"; num.textContent = d;
+      cell.appendChild(num);
+      var dateStr = ymd(calView.year, calView.month, d);
+      (eventsByDate[dateStr] || []).forEach(function (ev) {
+        var tag = document.createElement("span");
+        tag.className = "cal-tag " + ev.category;
+        tag.textContent = ev.name;
+        cell.appendChild(tag);
+      });
+      grid.appendChild(cell);
+    }
+  }
+
+  function renderEventList() {
+    var monthPrefix = calView.year + "-" + pad2(calView.month + 1);
+    var monthEvents = state.events.filter(function (ev) { return ev.date && ev.date.indexOf(monthPrefix) === 0; })
+      .sort(function (a, b) { return a.date < b.date ? -1 : 1; });
+    document.getElementById("eventListHint").textContent = monthEvents.length
+      ? "この月のイベント(" + monthEvents.length + "件)"
+      : "この月に登録されたイベントはありません";
+    var wrap = document.getElementById("eventList");
+    wrap.innerHTML = "";
+    monthEvents.forEach(function (ev) {
+      var row = document.createElement("div");
+      row.className = "deal-row";
+      var name = document.createElement("span");
+      name.className = "deal-name";
+      name.textContent = ev.date + " ｜ " + ev.name + (ev.note ? "(" + ev.note + ")" : "");
+      var rm = document.createElement("button");
+      rm.type = "button"; rm.className = "rm-btn"; rm.textContent = "削除";
+      rm.addEventListener("click", function () {
+        state.events = state.events.filter(function (x) { return x.id !== ev.id; });
+        renderAll();
+        if (NOTION_ENABLED) notionSoftDelete(ev.notionId).catch(function (err) {
+          setSyncStatus("イベントの削除の同期に失敗しました(" + (err && err.code) + ")", true);
+        });
+      });
+      row.appendChild(name); row.appendChild(rm);
+      wrap.appendChild(row);
+    });
+  }
+
+  function renderAll() {
+    renderStats();
+    renderHotels();
+    renderRoutes();
+    renderExpenses();
+    renderDeals();
+    renderCalendar();
+    renderEventList();
+  }
+
+  // ---------- Init ----------
+  function seedSelects() {
+    var routeSelect = document.getElementById("routeMethod");
+    ROUTE_METHODS.forEach(function (m) {
+      var opt = document.createElement("option"); opt.value = m; opt.textContent = m;
+      routeSelect.appendChild(opt);
+    });
+    var expenseSelect = document.getElementById("expenseCategory");
+    EXPENSE_CATEGORIES.forEach(function (c) {
+      var opt = document.createElement("option"); opt.value = c; opt.textContent = c;
+      expenseSelect.appendChild(opt);
+    });
+    var eventSelect = document.getElementById("eventCategory");
+    EVENT_CATEGORIES.forEach(function (c) {
+      var opt = document.createElement("option"); opt.value = c; opt.textContent = c;
+      eventSelect.appendChild(opt);
+    });
+  }
+
+  function init() {
+    seedSelects();
+
+    document.getElementById("addHotelBtn").addEventListener("click", function () {
+      var name = document.getElementById("hotelName").value.trim();
+      if (!name) return;
+      var h = {
+        id: "temp-" + (nextTempId++), notionId: null,
+        name: name,
+        price: (function () { var v = document.getElementById("hotelPrice").value; return v === "" ? null : parseFloat(v); })(),
+        checkin: document.getElementById("hotelCheckin").value || "",
+        checkout: document.getElementById("hotelCheckout").value || "",
+        guests: (function () { var v = document.getElementById("hotelGuests").value; return v === "" ? null : parseFloat(v); })(),
+        note: "", status: HOTEL_STATUS_OPTIONS[0]
+      };
+      state.hotels.push(h);
+      ["hotelName", "hotelPrice", "hotelCheckin", "hotelCheckout", "hotelGuests"].forEach(function (id) {
+        document.getElementById(id).value = "";
+      });
+      renderAll();
+      if (NOTION_ENABLED) {
+        notionCreate(DS.hotels.id, hotelToProps(h)).then(function (res) {
+          var created = res.payload && res.payload.pages && res.payload.pages[0];
+          if (created && created.id) { h.id = created.id; h.notionId = created.id; }
+        }).catch(function (err) {
+          setSyncStatus("ホテルの追加の同期に失敗しました(" + (err && err.code) + ")", true);
+        });
+      }
+    });
+
+    document.getElementById("addRouteBtn").addEventListener("click", function () {
+      var name = document.getElementById("routeName").value.trim();
+      if (!name) return;
+      var r = {
+        id: "temp-" + (nextTempId++), notionId: null,
+        name: name,
+        method: document.getElementById("routeMethod").value || ROUTE_METHODS[0],
+        cost: (function () { var v = document.getElementById("routeCost").value; return v === "" ? null : parseFloat(v); })(),
+        minutes: (function () { var v = document.getElementById("routeMinutes").value; return v === "" ? null : parseFloat(v); })(),
+        note: ""
+      };
+      state.routes.push(r);
+      ["routeName", "routeCost", "routeMinutes"].forEach(function (id) { document.getElementById(id).value = ""; });
+      renderAll();
+      if (NOTION_ENABLED) {
+        notionCreate(DS.routes.id, { "経路名": r.name, "手段": r.method, "費用": r.cost, "所要時間_分": r.minutes, "メモ": "" }).then(function (res) {
+          var created = res.payload && res.payload.pages && res.payload.pages[0];
+          if (created && created.id) { r.id = created.id; r.notionId = created.id; }
+        }).catch(function (err) {
+          setSyncStatus("経路の追加の同期に失敗しました(" + (err && err.code) + ")", true);
+        });
+      }
+    });
+
+    document.getElementById("addExpenseBtn").addEventListener("click", function () {
+      var name = document.getElementById("expenseName").value.trim();
+      if (!name) return;
+      var e = {
+        id: "temp-" + (nextTempId++), notionId: null,
+        name: name,
+        category: document.getElementById("expenseCategory").value || EXPENSE_CATEGORIES[0],
+        amount: (function () { var v = document.getElementById("expenseAmount").value; return v === "" ? null : parseFloat(v); })(),
+        note: ""
+      };
+      state.expenses.push(e);
+      ["expenseName", "expenseAmount"].forEach(function (id) { document.getElementById(id).value = ""; });
+      renderAll();
+      if (NOTION_ENABLED) {
+        notionCreate(DS.expenses.id, { "項目名": e.name, "カテゴリ": e.category, "金額": e.amount, "メモ": "" }).then(function (res) {
+          var created = res.payload && res.payload.pages && res.payload.pages[0];
+          if (created && created.id) { e.id = created.id; e.notionId = created.id; }
+        }).catch(function (err) {
+          setSyncStatus("費用項目の追加の同期に失敗しました(" + (err && err.code) + ")", true);
+        });
+      }
+    });
+
+    document.getElementById("addDealBtn").addEventListener("click", function () {
+      var input = document.getElementById("dealInput");
+      var name = input.value.trim();
+      if (!name || state.deals.some(function (d) { return d.name === name; })) return;
+      var d = { id: "temp-" + (nextTempId++), notionId: null, name: name, status: "未検討" };
+      state.deals.push(d);
+      input.value = "";
+      renderAll();
+      if (NOTION_ENABLED) {
+        notionCreate(DS.deals.id, { "項目名": name, "状態": "未検討" }).then(function (res) {
+          var created = res.payload && res.payload.pages && res.payload.pages[0];
+          if (created && created.id) { d.id = created.id; d.notionId = created.id; }
+        }).catch(function (err) {
+          setSyncStatus("お得情報の追加の同期に失敗しました(" + (err && err.code) + ")", true);
+        });
+      }
+    });
+
+    document.getElementById("addEventBtn").addEventListener("click", function () {
+      var name = document.getElementById("eventName").value.trim();
+      var date = document.getElementById("eventDate").value;
+      if (!name || !date) return;
+      var ev = {
+        id: "temp-" + (nextTempId++), notionId: null,
+        name: name, date: date,
+        category: document.getElementById("eventCategory").value || EVENT_CATEGORIES[0],
+        note: document.getElementById("eventNote").value.trim()
+      };
+      state.events.push(ev);
+      ["eventName", "eventDate", "eventNote"].forEach(function (id) { document.getElementById(id).value = ""; });
+      calView.year = parseInt(date.slice(0, 4), 10);
+      calView.month = parseInt(date.slice(5, 7), 10) - 1;
+      renderAll();
+      if (NOTION_ENABLED) {
+        var props = { "名称": ev.name, "カテゴリ": ev.category, "メモ": ev.note, "date:日付:start": ev.date };
+        notionCreate(DS.events.id, props).then(function (res) {
+          var created = res.payload && res.payload.pages && res.payload.pages[0];
+          if (created && created.id) { ev.id = created.id; ev.notionId = created.id; }
+        }).catch(function (err) {
+          setSyncStatus("イベントの追加の同期に失敗しました(" + (err && err.code) + ")", true);
+        });
+      }
+    });
+
+    document.getElementById("calPrevBtn").addEventListener("click", function () {
+      calView.month -= 1;
+      if (calView.month < 0) { calView.month = 11; calView.year -= 1; }
+      renderCalendar(); renderEventList();
+    });
+    document.getElementById("calNextBtn").addEventListener("click", function () {
+      calView.month += 1;
+      if (calView.month > 11) { calView.month = 0; calView.year += 1; }
+      renderCalendar(); renderEventList();
+    });
+
+    if (NOTION_ENABLED) {
+      setSyncStatus("Notionから読み込んでいます…");
+      Promise.all([loadEvents(), loadHotels(), loadRoutes(), loadExpenses(), loadDeals()]).then(function (results) {
+        state.events = results[0];
+        state.hotels = results[1];
+        state.routes = results[2];
+        state.expenses = results[3];
+        state.deals = results[4];
+        if (!state.deals.length) {
+          DEFAULT_DEAL_ITEMS.forEach(function (name) {
+            var d = { id: "temp-" + (nextTempId++), notionId: null, name: name, status: "未検討" };
+            state.deals.push(d);
+            notionCreate(DS.deals.id, { "項目名": name, "状態": "未検討" }).then(function (res) {
+              var created = res.payload && res.payload.pages && res.payload.pages[0];
+              if (created && created.id) { d.id = created.id; d.notionId = created.id; }
+            }).catch(function () {});
+          });
+        }
+        renderAll();
+        setSyncStatus("Notionと同期中(他の端末からも同じデータが見えます)");
+      }).catch(function (err) {
+        setSyncStatus("Notionからの読み込みに失敗しました(" + (err && err.code) + ")。ページを再読み込みしてください。", true);
+        renderAll();
+      });
+    } else {
+      DEFAULT_DEAL_ITEMS.forEach(function (name) {
+        state.deals.push({ id: "temp-" + (nextTempId++), notionId: null, name: name, status: "未検討" });
+      });
+      setSyncStatus("ローカルモードです(このページを閉じるとデータは消えます)");
+      renderAll();
+    }
+  }
+
+  document.addEventListener("DOMContentLoaded", init);
+})();
+</script>
+</body>
+</html>
