@@ -94,11 +94,20 @@
   .cal-day { border: 1px solid var(--border); border-radius: 6px; min-height: 64px; padding: 4px; font-size: 0.75rem; }
   .cal-day.empty { border: none; }
   .cal-day .d-num { font-size: 0.75rem; color: var(--muted); }
-  .cal-tag { display: block; border-radius: 4px; padding: 1px 4px; margin-top: 2px; font-size: 0.68rem; color: #fff; line-height: 1.3; }
+  .cal-tag { display: block; border-radius: 4px; padding: 1px 4px; margin-top: 2px; font-size: 0.68rem; color: #fff; line-height: 1.3; cursor: pointer; border: none; width: 100%; text-align: left; font: inherit; }
+  .cal-tag:hover { opacity: 0.85; }
   .cal-tag.花火大会 { background: var(--letgo); }
   .cal-tag.祭り・イベント { background: var(--consider); }
   .cal-tag.観光・施設情報 { background: var(--accent); }
   .cal-tag.その他 { background: #9ca3af; }
+  .event-detail {
+    margin-top: 10px; padding: 12px 14px; background: var(--bg);
+    border: 1px solid var(--border); border-radius: 8px;
+  }
+  .event-detail .ed-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; }
+  .event-detail .ed-row { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
+  .event-detail .ed-row b { color: var(--text); font-weight: 600; }
+  .event-detail .ed-close { float: right; }
 
   /* mobile: tables become stacked cards */
   @media (max-width: 600px) {
@@ -221,6 +230,9 @@
       <label>名称<input type="text" id="eventName" placeholder="例: ○○花火大会"></label>
       <label>日付<input type="date" id="eventDate"></label>
       <label>カテゴリ<select id="eventCategory"></select></label>
+      <label>場所(都道府県・会場)<input type="text" id="eventLocation" placeholder="例: 淀川河川敷(大阪府)"></label>
+      <label>開始時間<input type="text" id="eventStartTime" placeholder="例: 19:30"></label>
+      <label>終了時間<input type="text" id="eventEndTime" placeholder="例: 20:30"></label>
       <label>メモ<input type="text" id="eventNote" placeholder="任意"></label>
     </div>
     <button type="button" id="addEventBtn">追加</button>
@@ -231,6 +243,7 @@
       <button type="button" class="secondary" id="calNextBtn">次月 ▶</button>
     </div>
     <div class="cal-grid" id="calGrid"></div>
+    <div id="eventDetail"></div>
     <div class="hint" id="eventListHint" style="margin-top:10px;"></div>
     <div id="eventList"></div>
   </div>
@@ -324,6 +337,7 @@
   var state = { events: [], hotels: [], routes: [], expenses: [], deals: [] };
   var nextTempId = 1;
   var calView = (function () { var d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }; })();
+  var selectedEventId = null;
 
   // ---------- Events ----------
   function eventRowToItem(row) {
@@ -333,6 +347,9 @@
       name: row["名称"] || "",
       date: row["date:日付:start"] || "",
       category: row["カテゴリ"] || "その他",
+      location: row["場所"] || "",
+      startTime: row["開始時間"] || "",
+      endTime: row["終了時間"] || "",
       note: row["メモ"] || ""
     };
   }
@@ -654,13 +671,68 @@
       cell.appendChild(num);
       var dateStr = ymd(calView.year, calView.month, d);
       (eventsByDate[dateStr] || []).forEach(function (ev) {
-        var tag = document.createElement("span");
+        var tag = document.createElement("button");
+        tag.type = "button";
         tag.className = "cal-tag " + ev.category;
         tag.textContent = ev.name;
+        tag.addEventListener("click", function () {
+          selectedEventId = ev.id;
+          renderEventDetail();
+        });
         cell.appendChild(tag);
       });
       grid.appendChild(cell);
     }
+  }
+
+  function renderEventDetail() {
+    var wrap = document.getElementById("eventDetail");
+    wrap.innerHTML = "";
+    if (!selectedEventId) return;
+    var ev = state.events.filter(function (x) { return x.id === selectedEventId; })[0];
+    if (!ev) { selectedEventId = null; return; }
+
+    var box = document.createElement("div");
+    box.className = "event-detail";
+
+    var closeBtn = document.createElement("button");
+    closeBtn.type = "button"; closeBtn.className = "rm-btn ed-close"; closeBtn.textContent = "閉じる ✕";
+    closeBtn.addEventListener("click", function () { selectedEventId = null; renderEventDetail(); });
+    box.appendChild(closeBtn);
+
+    var title = document.createElement("div");
+    title.className = "ed-title"; title.textContent = ev.name;
+    box.appendChild(title);
+
+    function edRow(label, value) {
+      if (!value) return;
+      var row = document.createElement("div");
+      row.className = "ed-row";
+      var b = document.createElement("b"); b.textContent = label + ": ";
+      row.appendChild(b);
+      row.appendChild(document.createTextNode(value));
+      box.appendChild(row);
+    }
+    edRow("日付", ev.date);
+    edRow("時間", (ev.startTime || ev.endTime) ? (ev.startTime || "?") + " 〜 " + (ev.endTime || "?") : "");
+    edRow("場所", ev.location);
+    edRow("カテゴリ", ev.category);
+    edRow("メモ", ev.note);
+
+    var rmBtn = document.createElement("button");
+    rmBtn.type = "button"; rmBtn.className = "rm-btn"; rmBtn.style.marginTop = "8px";
+    rmBtn.textContent = "このイベントを削除";
+    rmBtn.addEventListener("click", function () {
+      state.events = state.events.filter(function (x) { return x.id !== ev.id; });
+      selectedEventId = null;
+      renderAll();
+      if (NOTION_ENABLED) notionSoftDelete(ev.notionId).catch(function (err) {
+        setSyncStatus("イベントの削除の同期に失敗しました(" + (err && err.code) + ")", true);
+      });
+    });
+    box.appendChild(rmBtn);
+
+    wrap.appendChild(box);
   }
 
   function renderEventList() {
@@ -675,9 +747,15 @@
     monthEvents.forEach(function (ev) {
       var row = document.createElement("div");
       row.className = "deal-row";
-      var name = document.createElement("span");
+      var name = document.createElement("button");
+      name.type = "button";
       name.className = "deal-name";
-      name.textContent = ev.date + " ｜ " + ev.name + (ev.note ? "(" + ev.note + ")" : "");
+      name.style.cssText = "background:none;border:none;padding:0;text-align:left;cursor:pointer;color:inherit;font:inherit;";
+      name.textContent = ev.date + " ｜ " + ev.name + (ev.location ? "(" + ev.location + ")" : "");
+      name.addEventListener("click", function () {
+        selectedEventId = ev.id;
+        renderEventDetail();
+      });
       var rm = document.createElement("button");
       rm.type = "button"; rm.className = "rm-btn"; rm.textContent = "削除";
       rm.addEventListener("click", function () {
@@ -699,6 +777,7 @@
     renderExpenses();
     renderDeals();
     renderCalendar();
+    renderEventDetail();
     renderEventList();
   }
 
@@ -824,15 +903,21 @@
         id: "temp-" + (nextTempId++), notionId: null,
         name: name, date: date,
         category: document.getElementById("eventCategory").value || EVENT_CATEGORIES[0],
+        location: document.getElementById("eventLocation").value.trim(),
+        startTime: document.getElementById("eventStartTime").value.trim(),
+        endTime: document.getElementById("eventEndTime").value.trim(),
         note: document.getElementById("eventNote").value.trim()
       };
       state.events.push(ev);
-      ["eventName", "eventDate", "eventNote"].forEach(function (id) { document.getElementById(id).value = ""; });
+      ["eventName", "eventDate", "eventLocation", "eventStartTime", "eventEndTime", "eventNote"].forEach(function (id) { document.getElementById(id).value = ""; });
       calView.year = parseInt(date.slice(0, 4), 10);
       calView.month = parseInt(date.slice(5, 7), 10) - 1;
       renderAll();
       if (NOTION_ENABLED) {
-        var props = { "名称": ev.name, "カテゴリ": ev.category, "メモ": ev.note, "date:日付:start": ev.date };
+        var props = {
+          "名称": ev.name, "カテゴリ": ev.category, "メモ": ev.note, "date:日付:start": ev.date,
+          "場所": ev.location, "開始時間": ev.startTime, "終了時間": ev.endTime
+        };
         notionCreate(DS.events.id, props).then(function (res) {
           var created = res.payload && res.payload.pages && res.payload.pages[0];
           if (created && created.id) { ev.id = created.id; ev.notionId = created.id; }
@@ -845,12 +930,14 @@
     document.getElementById("calPrevBtn").addEventListener("click", function () {
       calView.month -= 1;
       if (calView.month < 0) { calView.month = 11; calView.year -= 1; }
-      renderCalendar(); renderEventList();
+      selectedEventId = null;
+      renderCalendar(); renderEventDetail(); renderEventList();
     });
     document.getElementById("calNextBtn").addEventListener("click", function () {
       calView.month += 1;
       if (calView.month > 11) { calView.month = 0; calView.year += 1; }
-      renderCalendar(); renderEventList();
+      selectedEventId = null;
+      renderCalendar(); renderEventDetail(); renderEventList();
     });
 
     if (NOTION_ENABLED) {
