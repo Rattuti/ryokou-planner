@@ -378,13 +378,13 @@
   var NOTION_ENABLED = !!(window.claude && window.claude.mcp);
   var NOTION_SERVER = "Notion";
   var NOTION_PAGE_SIZE = 100;
+  // deals(お得情報)は対応するNotion DBが存在しないため、同期対象から外している。
   var DS = {
-    events: { id: "669546e7-0a8a-4b6e-a8fb-302b0bfcc68b", view: "view://5ce71963-53f0-4504-bb15-e610149e7366" },
-    hotels: { id: "3ed3313d-1bbf-40f8-86d8-717ad93c2790", view: "view://1e9ba44b-90d9-4348-8a4c-67c0319207c4" },
-    routes: { id: "d61c8a92-1053-418c-9969-fff2456cb3a1", view: "view://1f1b3e4a-b75d-4886-92e1-587c43aa397b" },
-    expenses: { id: "57fc7af1-59f3-4041-872f-5605bebf8f15", view: "view://5b9e210a-cf8a-400f-b977-7a11f6bcdb97" },
-    deals: { id: "1fd687b6-ff81-47be-9108-0a10bc5f63f0", view: "view://5995b4b4-660c-40cc-ba7b-e3be944d346c" },
-    candidates: { id: "65bc0496-9a19-4db6-950e-4f992b6d451a", view: "view://0ab50047-01d6-4791-885c-d2a0f5a19267" }
+    events: { id: "9ad11c61-7092-4cf4-aea8-5ab3f5602bc6", view: "view://5ce71963-53f0-4504-bb15-e610149e7366" },
+    hotels: { id: "c3873203-d037-4018-ba34-6ab07e81cbe6", view: "view://1e9ba44b-90d9-4348-8a4c-67c0319207c4" },
+    routes: { id: "75ba56f4-5fc5-45f5-959d-df2ac6eac322", view: "view://1f1b3e4a-b75d-4886-92e1-587c43aa397b" },
+    expenses: { id: "32a02048-0dd3-4d73-bc2c-de6171cbaf8a", view: "view://5b9e210a-cf8a-400f-b977-7a11f6bcdb97" },
+    candidates: { id: "cce21bd3-bb6b-46e7-9f7e-6a07aea1af7c", view: "view://0ab50047-01d6-4791-885c-d2a0f5a19267" }
   };
 
   var EVENT_CATEGORIES = ["花火大会", "祭り・イベント", "観光・施設情報", "工場見学", "ファミリー向け", "その他"];
@@ -606,17 +606,7 @@
     return loadCollection(DS.expenses.view, expenseRowToItem);
   }
 
-  // ---------- Deals ----------
-  function dealRowToItem(row) {
-    var pageId = extractPageId(row.url);
-    return { id: pageId, notionId: pageId, name: row["項目名"] || "", status: row["状態"] || "未検討" };
-  }
-  function dealToProps(d) {
-    return { "項目名": d.name, "状態": d.status };
-  }
-  function loadDeals() {
-    return loadCollection(DS.deals.view, dealRowToItem, function (d) { return d.name; });
-  }
+  // ---------- Deals (対応するNotion DBがないため常にローカルのみで管理) ----------
 
   // ---------- Candidates (undated memo) ----------
   function candidateRowToItem(row) {
@@ -779,10 +769,12 @@
       var select = buildStatusSelect(DEAL_STATUS_OPTIONS, d.status, function (value) {
         d.status = value;
         renderAll();
-        syncUpdate(d.notionId, { "状態": d.status }, "お得情報の同期に失敗しました");
       });
       var badge = createStatusBadge(DEAL_STATUS_COLOR[d.status] || "#999");
-      var rm = createRemoveButton("削除", function () { removeItem("deals", d, "お得情報"); });
+      var rm = createRemoveButton("削除", function () {
+        state.deals = state.deals.filter(function (x) { return x.id !== d.id; });
+        renderAll();
+      });
 
       right.appendChild(badge); right.appendChild(select); right.appendChild(rm);
       row.appendChild(name); row.appendChild(right);
@@ -1124,7 +1116,6 @@
       state.deals.push(d);
       input.value = "";
       renderAll();
-      syncCreate(DS.deals.id, dealToProps(d), d, "お得情報");
     });
 
     document.getElementById("addCandidateBtn").addEventListener("click", function () {
@@ -1171,25 +1162,18 @@
       renderCalendar(); renderEventDetail(); renderEventList();
     });
 
+    DEFAULT_DEAL_ITEMS.forEach(function (name) {
+      state.deals.push({ id: createTempId(), notionId: null, name: name, status: "未検討" });
+    });
+
     if (NOTION_ENABLED) {
       setSyncStatus("Notionから読み込んでいます…");
-      Promise.all([loadEvents(), loadHotels(), loadRoutes(), loadExpenses(), loadDeals(), loadCandidates()]).then(function (results) {
+      Promise.all([loadEvents(), loadHotels(), loadRoutes(), loadExpenses(), loadCandidates()]).then(function (results) {
         state.events = results[0];
         state.hotels = results[1];
         state.routes = results[2];
         state.expenses = results[3];
-        state.deals = results[4];
-        state.candidates = results[5];
-        if (!state.deals.length) {
-          DEFAULT_DEAL_ITEMS.forEach(function (name) {
-            var d = { id: createTempId(), notionId: null, name: name, status: "未検討" };
-            state.deals.push(d);
-            notionCreate(DS.deals.id, dealToProps(d)).then(function (res) {
-              var id = extractCreatedPageId(res);
-              if (id) { d.id = id; d.notionId = id; }
-            }).catch(function () {});
-          });
-        }
+        state.candidates = results[4];
         renderAll();
         setSyncStatus("Notionと同期中(他の端末からも同じデータが見えます)");
       }).catch(function (err) {
@@ -1197,9 +1181,6 @@
         renderAll();
       });
     } else {
-      DEFAULT_DEAL_ITEMS.forEach(function (name) {
-        state.deals.push({ id: createTempId(), notionId: null, name: name, status: "未検討" });
-      });
       setSyncStatus("ローカルモードです(このページを閉じるとデータは消えます)");
       renderAll();
     }
