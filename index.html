@@ -16,6 +16,8 @@
     --keep: #4f8f6a;
     --consider: #c99a3f;
     --letgo: #b3546b;
+    --factory: #4a7f8f;
+    --family: #5b6f9c;
   }
   * { box-sizing: border-box; }
   body {
@@ -37,7 +39,6 @@
   .panel h2 { font-size: 1rem; margin: 0 0 4px; }
   .panel .desc { font-size: 0.82rem; color: var(--muted); margin: 0 0 14px; }
   .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
-  .row.between { justify-content: space-between; }
   select, input[type=text], input[type=number], input[type=date], button {
     font: inherit;
     padding: 6px 10px;
@@ -61,10 +62,12 @@
   .form-grid select, .form-grid input { width: 100%; }
 
   .table-wrap { max-height: 380px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; margin-top: 10px; }
-  table { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
-  th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  table { width: 100%; border-collapse: collapse; table-layout: fixed; font-size: 0.86rem; }
+  th, td { text-align: left; padding: 7px 9px; border-bottom: 1px solid var(--border); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   th { color: var(--muted); font-weight: 600; position: sticky; top: 0; background: var(--panel); }
-  td.name-cell { white-space: normal; max-width: 180px; font-weight: 500; }
+  td.name-cell { white-space: normal; overflow: visible; font-weight: 500; }
+  td.status-cell { white-space: normal; overflow: visible; }
+  .status-cell-inner { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
   .badge {
     display: inline-flex; align-items: center; gap: 5px;
     padding: 3px 10px; border-radius: 999px; font-size: 0.78rem; color: #fff; font-weight: 600;
@@ -75,14 +78,6 @@
   .empty { color: var(--muted); text-align: center; padding: 20px 0; font-size: 0.88rem; }
   .research-link { color: var(--accent-dark); font-size: 0.8rem; text-decoration: none; font-weight: 600; }
   .research-link:hover { text-decoration: underline; }
-
-  .chip-list { display: flex; flex-wrap: wrap; gap: 6px; }
-  .chip {
-    display: inline-flex; align-items: center; gap: 6px;
-    background: var(--bg); border-radius: 999px; padding: 4px 6px 4px 12px; font-size: 0.85rem;
-  }
-  .chip .rm { background: none; border: none; color: var(--muted); cursor: pointer; padding: 2px 6px; border-radius: 50%; font-size: 0.8rem; }
-  .chip .rm:hover { color: var(--letgo); }
 
   .deal-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid var(--border); }
   .deal-row:last-child { border-bottom: none; }
@@ -99,6 +94,8 @@
   .cal-tag.花火大会 { background: var(--letgo); }
   .cal-tag.祭り・イベント { background: var(--consider); }
   .cal-tag.観光・施設情報 { background: var(--accent); }
+  .cal-tag.工場見学 { background: var(--factory); }
+  .cal-tag.ファミリー向け { background: var(--family); }
   .cal-tag.その他 { background: #9ca3af; }
   .event-detail {
     margin-top: 10px; padding: 12px 14px; background: var(--bg);
@@ -123,7 +120,7 @@
       padding: 10px 12px;
       margin-bottom: 10px;
     }
-    td { display: block; width: 100%; border-bottom: none; padding: 6px 0; white-space: normal; }
+    td { display: block; width: 100%; border-bottom: none; padding: 6px 0; white-space: normal; overflow: visible; text-overflow: clip; }
     td.name-cell { font-size: 1rem; font-weight: 700; max-width: none; padding-bottom: 8px; margin-bottom: 4px; border-bottom: 1px solid var(--border); }
     td[data-label]::before {
       content: attr(data-label);
@@ -169,6 +166,10 @@
     <button type="button" id="addHotelBtn">追加</button>
     <div class="table-wrap">
       <table>
+        <colgroup>
+          <col style="width:22%"><col style="width:12%"><col style="width:20%">
+          <col style="width:8%"><col style="width:20%"><col style="width:10%"><col style="width:8%">
+        </colgroup>
         <thead><tr><th>ホテル名</th><th>料金</th><th>宿泊日程</th><th>人数</th><th>ステータス</th><th>検索</th><th></th></tr></thead>
         <tbody id="hotelBody"></tbody>
       </table>
@@ -188,6 +189,9 @@
     <button type="button" id="addRouteBtn">追加</button>
     <div class="table-wrap">
       <table>
+        <colgroup>
+          <col style="width:32%"><col style="width:18%"><col style="width:18%"><col style="width:20%"><col style="width:12%">
+        </colgroup>
         <thead><tr><th>経路名</th><th>手段</th><th>費用</th><th>所要時間</th><th></th></tr></thead>
         <tbody id="routeBody"></tbody>
       </table>
@@ -206,6 +210,9 @@
     <button type="button" id="addExpenseBtn">追加</button>
     <div class="table-wrap">
       <table>
+        <colgroup>
+          <col style="width:40%"><col style="width:22%"><col style="width:26%"><col style="width:12%">
+        </colgroup>
         <thead><tr><th>項目名</th><th>カテゴリ</th><th>金額</th><th></th></tr></thead>
         <tbody id="expenseBody"></tbody>
       </table>
@@ -221,6 +228,18 @@
       <input type="text" id="dealInput" placeholder="項目を追加(例: ○○旅行会社のクーポン)">
       <button type="button" class="secondary" id="addDealBtn">追加</button>
     </div>
+  </div>
+
+  <div class="panel">
+    <h2>気になる工場見学・お出かけ候補</h2>
+    <p class="desc">まだ日程が決まっていない候補をメモしておけます。日付が決まったら「イベントカレンダー」に登録してください。</p>
+    <div id="candidateList"></div>
+    <div id="candidateDetail"></div>
+    <div class="form-grid" style="margin-top:8px;">
+      <label>名称(都道府県・市区町村を先頭に)<input type="text" id="candidateName" placeholder="例: 東京都調布市 - キユーピー マヨテラス"></label>
+      <label>参考URL<input type="text" id="candidateUrl" placeholder="任意"></label>
+    </div>
+    <button type="button" class="secondary" id="addCandidateBtn">追加</button>
   </div>
 
   <div class="panel">
@@ -254,23 +273,129 @@
   "use strict";
 
   // ---------- Notion sync ----------
+  // ---------- Notion bridge shim ----------
+  // window.claude.mcp が存在しない環境(Artifactではなくローカルファイル等として
+  // 開かれた場合)でのみ、Cloudflare Worker(notion-bridge)経由でNotion側の
+  // データを読み書きする互換シムを定義する。window.claude.mcp.callTool(server,
+  // tool, input) と同じ形を再現し、アプリ本体のコードからは区別なく呼べるようにする。
+  if (!(window.claude && window.claude.mcp)) {
+    (function () {
+      var BRIDGE_BASE = "https://notion-bridge.rattuti.workers.dev";
+      var APP_KEY_STORAGE = "notion_bridge_key";
+      // ビューURL→DB IDの対応は、下で定義するDS(データソース定義)から都度引く。
+      // callToolは非同期に呼ばれるため、この時点でDSがまだ未代入でも問題ない。
+      function dataSourceIdForView(viewUrl) {
+        var keys = Object.keys(DS);
+        for (var i = 0; i < keys.length; i++) {
+          if (DS[keys[i]].view === viewUrl) return DS[keys[i]].id;
+        }
+        return null;
+      }
+
+      // notion-query-database-view/notion-create-pagesで取得・作成した各ページIDが
+      // どのデータソース(DB)に属するかを控えておく。notion-update-pageはpage_idしか
+      // 受け取らないため、更新時にこの対応表からdataSourceIdを引く。
+      // Workerが返すIDはハイフン付きだが、アプリ側はextractPageId()でハイフンなしの
+      // 32桁hexに変換した値をnotionIdとして保持するため、キーは常にハイフンを
+      // 除去して正規化してから読み書きする。
+      var pageDataSourceMap = {};
+      function normalizeId(id) {
+        return (id || "").replace(/-/g, "");
+      }
+
+      function getAppKey() {
+        var key = localStorage.getItem(APP_KEY_STORAGE);
+        if (!key) {
+          key = window.prompt("Notion連携用のアプリキーを入力してください");
+          if (key) localStorage.setItem(APP_KEY_STORAGE, key);
+        }
+        return key;
+      }
+
+      function bridgeFetch(path, body) {
+        var key = getAppKey();
+        return fetch(BRIDGE_BASE + path, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-App-Key": key || "" },
+          body: JSON.stringify(body)
+        }).then(function (res) {
+          if (res.status === 401) {
+            localStorage.removeItem(APP_KEY_STORAGE);
+            return Promise.reject({ code: "unauthorized", message: "アプリキーが正しくありません" });
+          }
+          if (!res.ok) {
+            return Promise.reject({ code: "http_" + res.status, message: "Notion連携サーバーへの通信に失敗しました" });
+          }
+          return res.json();
+        });
+      }
+
+      // bridgeFetchはWorkerの生レスポンス({results,...}や{pages:[...]}等)を
+      // そのまま返す。window.claude.mcp.callToolの実際の戻り値は{payload: ...}
+      // で包まれた形のため、ここで同じ形に包み直してからアプリ本体に返す。
+      function callTool(server, tool, input) {
+        if (tool === "notion-query-database-view") {
+          var queryDataSourceId = dataSourceIdForView(input.view_url);
+          var queryBody = { dataSourceId: queryDataSourceId, page_size: input.page_size };
+          if (input.start_cursor) queryBody.start_cursor = input.start_cursor;
+          return bridgeFetch("/query", queryBody).then(function (raw) {
+            var results = raw.results || [];
+            results.forEach(function (row) {
+              if (row && row.id) pageDataSourceMap[normalizeId(row.id)] = queryDataSourceId;
+            });
+            return { payload: raw };
+          });
+        }
+        if (tool === "notion-create-pages") {
+          var createDataSourceId = input.parent && input.parent.data_source_id;
+          var page = input.pages && input.pages[0];
+          return bridgeFetch("/create", {
+            dataSourceId: createDataSourceId,
+            properties: page && page.properties
+          }).then(function (raw) {
+            var created = raw.pages && raw.pages[0];
+            if (created && created.id) pageDataSourceMap[normalizeId(created.id)] = createDataSourceId;
+            return { payload: raw };
+          });
+        }
+        if (tool === "notion-update-page") {
+          return bridgeFetch("/update", {
+            pageId: input.page_id,
+            dataSourceId: pageDataSourceMap[normalizeId(input.page_id)],
+            properties: input.properties
+          }).then(function (raw) {
+            return { payload: raw };
+          });
+        }
+        return Promise.reject({ code: "unsupported_tool", message: "未対応のツールです: " + tool });
+      }
+
+      window.claude = window.claude || {};
+      window.claude.mcp = { callTool: callTool };
+    })();
+  }
+
   var NOTION_ENABLED = !!(window.claude && window.claude.mcp);
   var NOTION_SERVER = "Notion";
+  var NOTION_PAGE_SIZE = 100;
   var DS = {
     events: { id: "669546e7-0a8a-4b6e-a8fb-302b0bfcc68b", view: "view://5ce71963-53f0-4504-bb15-e610149e7366" },
     hotels: { id: "3ed3313d-1bbf-40f8-86d8-717ad93c2790", view: "view://1e9ba44b-90d9-4348-8a4c-67c0319207c4" },
     routes: { id: "d61c8a92-1053-418c-9969-fff2456cb3a1", view: "view://1f1b3e4a-b75d-4886-92e1-587c43aa397b" },
     expenses: { id: "57fc7af1-59f3-4041-872f-5605bebf8f15", view: "view://5b9e210a-cf8a-400f-b977-7a11f6bcdb97" },
-    deals: { id: "1fd687b6-ff81-47be-9108-0a10bc5f63f0", view: "view://5995b4b4-660c-40cc-ba7b-e3be944d346c" }
+    deals: { id: "1fd687b6-ff81-47be-9108-0a10bc5f63f0", view: "view://5995b4b4-660c-40cc-ba7b-e3be944d346c" },
+    candidates: { id: "65bc0496-9a19-4db6-950e-4f992b6d451a", view: "view://0ab50047-01d6-4791-885c-d2a0f5a19267" }
   };
 
-  var EVENT_CATEGORIES = ["花火大会", "祭り・イベント", "観光・施設情報", "その他"];
+  var EVENT_CATEGORIES = ["花火大会", "祭り・イベント", "観光・施設情報", "工場見学", "ファミリー向け", "その他"];
   var ROUTE_METHODS = ["飛行機", "新幹線", "在来線", "車", "バス", "その他"];
   var EXPENSE_CATEGORIES = ["宿泊費", "交通費", "食費", "観光費", "お土産", "その他"];
   var HOTEL_STATUS_OPTIONS = ["検討中", "予約済み", "見送り"];
   var HOTEL_STATUS_COLOR = { "検討中": "var(--consider)", "予約済み": "var(--keep)", "見送り": "var(--letgo)" };
   var DEAL_STATUS_OPTIONS = ["未検討", "検討中", "活用予定", "対象外"];
   var DEAL_STATUS_COLOR = { "未検討": "#9ca3af", "検討中": "var(--consider)", "活用予定": "var(--keep)", "対象外": "var(--letgo)" };
+  var CANDIDATE_STATUS_OPTIONS = ["検討中", "行きたい", "対象外"];
+  var CANDIDATE_STATUS_COLOR = { "検討中": "var(--consider)", "行きたい": "var(--keep)", "対象外": "var(--letgo)" };
   var DEFAULT_DEAL_ITEMS = [
     "早期予約割引",
     "家族割・ファミリープラン",
@@ -294,7 +419,7 @@
 
   function queryAllViewRows(viewUrl) {
     function fetchPage(cursor) {
-      var input = { view_url: viewUrl, page_size: 100 };
+      var input = { view_url: viewUrl, page_size: NOTION_PAGE_SIZE };
       if (cursor) input.start_cursor = cursor;
       return window.claude.mcp.callTool(NOTION_SERVER, "notion-query-database-view", input).then(function (res) {
         var payload = res.payload || {};
@@ -333,11 +458,59 @@
     return "¥" + Math.round(n).toLocaleString("ja-JP");
   }
 
+  // ---------- Sync helpers (shared success/error handling for create/update/delete) ----------
+  function extractCreatedPageId(res) {
+    var created = res.payload && res.payload.pages && res.payload.pages[0];
+    return created && created.id ? created.id : null;
+  }
+
+  function syncCreate(dsId, properties, item, label) {
+    if (!NOTION_ENABLED) return;
+    notionCreate(dsId, properties).then(function (res) {
+      var id = extractCreatedPageId(res);
+      if (id) { item.id = id; item.notionId = id; }
+    }).catch(function (err) {
+      setSyncStatus(label + "の追加の同期に失敗しました(" + (err && err.code) + ")", true);
+    });
+  }
+
+  function syncUpdate(pageId, properties, errorMessage) {
+    if (!NOTION_ENABLED) return;
+    notionUpdate(pageId, properties).catch(function (err) {
+      setSyncStatus(errorMessage + "(" + (err && err.code) + ")", true);
+    });
+  }
+
+  function syncDelete(pageId, label) {
+    if (!NOTION_ENABLED) return;
+    notionSoftDelete(pageId).catch(function (err) {
+      setSyncStatus(label + "の削除の同期に失敗しました(" + (err && err.code) + ")", true);
+    });
+  }
+
   // ---------- App state ----------
-  var state = { events: [], hotels: [], routes: [], expenses: [], deals: [] };
+  var state = { events: [], hotels: [], routes: [], expenses: [], deals: [], candidates: [] };
   var nextTempId = 1;
   var calView = (function () { var d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }; })();
   var selectedEventId = null;
+  var selectedCandidateId = null;
+
+  function createTempId() {
+    return "temp-" + (nextTempId++);
+  }
+
+  function removeItem(collectionKey, item, label) {
+    state[collectionKey] = state[collectionKey].filter(function (x) { return x.id !== item.id; });
+    renderAll();
+    syncDelete(item.notionId, label);
+  }
+
+  function loadCollection(view, rowToItem, extraFilter) {
+    return queryAllViewRows(view).then(function (rows) {
+      var items = rows.filter(function (r) { return r["削除済み"] !== "__YES__"; }).map(rowToItem);
+      return extraFilter ? items.filter(extraFilter) : items;
+    });
+  }
 
   // ---------- Events ----------
   function eventRowToItem(row) {
@@ -353,10 +526,17 @@
       note: row["メモ"] || ""
     };
   }
+  function eventToProps(ev) {
+    return {
+      "名称": ev.name, "カテゴリ": ev.category, "メモ": ev.note, "date:日付:start": ev.date,
+      "場所": ev.location, "開始時間": ev.startTime, "終了時間": ev.endTime
+    };
+  }
   function loadEvents() {
-    return queryAllViewRows(DS.events.view).then(function (rows) {
-      return rows.filter(function (r) { return r["削除済み"] !== "__YES__"; }).map(eventRowToItem);
-    });
+    return loadCollection(DS.events.view, eventRowToItem);
+  }
+  function findEventById(id) {
+    return state.events.filter(function (x) { return x.id === id; })[0];
   }
 
   // ---------- Hotels ----------
@@ -383,9 +563,7 @@
     return props;
   }
   function loadHotels() {
-    return queryAllViewRows(DS.hotels.view).then(function (rows) {
-      return rows.filter(function (r) { return r["削除済み"] !== "__YES__"; }).map(hotelRowToItem);
-    });
+    return loadCollection(DS.hotels.view, hotelRowToItem);
   }
   function buildHotelSearchUrl(name) {
     return "https://www.google.com/search?q=" + encodeURIComponent(name + " 予約 ホテル");
@@ -403,10 +581,11 @@
       note: row["メモ"] || ""
     };
   }
+  function routeToProps(r) {
+    return { "経路名": r.name, "手段": r.method, "費用": r.cost, "所要時間_分": r.minutes, "メモ": "" };
+  }
   function loadRoutes() {
-    return queryAllViewRows(DS.routes.view).then(function (rows) {
-      return rows.filter(function (r) { return r["削除済み"] !== "__YES__"; }).map(routeRowToItem);
-    });
+    return loadCollection(DS.routes.view, routeRowToItem);
   }
 
   // ---------- Expenses ----------
@@ -420,10 +599,11 @@
       note: row["メモ"] || ""
     };
   }
+  function expenseToProps(e) {
+    return { "項目名": e.name, "カテゴリ": e.category, "金額": e.amount, "メモ": "" };
+  }
   function loadExpenses() {
-    return queryAllViewRows(DS.expenses.view).then(function (rows) {
-      return rows.filter(function (r) { return r["削除済み"] !== "__YES__"; }).map(expenseRowToItem);
-    });
+    return loadCollection(DS.expenses.view, expenseRowToItem);
   }
 
   // ---------- Deals ----------
@@ -431,10 +611,66 @@
     var pageId = extractPageId(row.url);
     return { id: pageId, notionId: pageId, name: row["項目名"] || "", status: row["状態"] || "未検討" };
   }
+  function dealToProps(d) {
+    return { "項目名": d.name, "状態": d.status };
+  }
   function loadDeals() {
-    return queryAllViewRows(DS.deals.view).then(function (rows) {
-      return rows.filter(function (r) { return r["削除済み"] !== "__YES__"; }).map(dealRowToItem).filter(function (d) { return d.name; });
+    return loadCollection(DS.deals.view, dealRowToItem, function (d) { return d.name; });
+  }
+
+  // ---------- Candidates (undated memo) ----------
+  function candidateRowToItem(row) {
+    var pageId = extractPageId(row.url);
+    return { id: pageId, notionId: pageId, name: row["名称"] || "", url: row["userDefined:URL"] || "", memo: row["メモ"] || "", status: row["状態"] || "検討中" };
+  }
+  function candidateToProps(c) {
+    return { "名称": c.name, "userDefined:URL": c.url || "", "メモ": c.memo || "", "状態": c.status };
+  }
+  function loadCandidates() {
+    return loadCollection(DS.candidates.view, candidateRowToItem, function (c) { return c.name; });
+  }
+  function findCandidateById(id) {
+    return state.candidates.filter(function (x) { return x.id === id; })[0];
+  }
+
+  // ---------- Rendering helpers ----------
+  function createCell(text, opts) {
+    var td = document.createElement("td");
+    if (opts) {
+      if (opts.className) td.className = opts.className;
+      if (opts.label) td.setAttribute("data-label", opts.label);
+    }
+    td.textContent = text;
+    return td;
+  }
+
+  function createRemoveButton(label, onClick) {
+    var btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "rm-btn";
+    btn.textContent = label;
+    btn.addEventListener("click", onClick);
+    return btn;
+  }
+
+  function createStatusBadge(color) {
+    var badge = document.createElement("span");
+    badge.className = "badge";
+    badge.style.background = color;
+    badge.textContent = " ";
+    return badge;
+  }
+
+  function buildStatusSelect(options, current, onChange) {
+    var select = document.createElement("select");
+    select.className = "status-select";
+    options.forEach(function (s) {
+      var opt = document.createElement("option"); opt.value = s; opt.textContent = s;
+      if (s === current) opt.selected = true;
+      select.appendChild(opt);
     });
+    select.addEventListener("change", function () { onChange(select.value); });
+    return select;
   }
 
   // ---------- Rendering ----------
@@ -457,41 +693,20 @@
     sorted.forEach(function (h) {
       var tr = document.createElement("tr");
 
-      var tdName = document.createElement("td");
-      tdName.className = "name-cell"; tdName.textContent = h.name;
-
-      var tdPrice = document.createElement("td");
-      tdPrice.setAttribute("data-label", "料金"); tdPrice.textContent = formatYen(h.price);
-
-      var tdDates = document.createElement("td");
-      tdDates.setAttribute("data-label", "宿泊日程");
-      tdDates.textContent = (h.checkin || "-") + " 〜 " + (h.checkout || "-");
-
-      var tdGuests = document.createElement("td");
-      tdGuests.setAttribute("data-label", "人数");
-      tdGuests.textContent = h.guests != null ? h.guests + "人" : "-";
-
       var tdStatus = document.createElement("td");
+      tdStatus.className = "status-cell";
       tdStatus.setAttribute("data-label", "ステータス");
-      var statusSelect = document.createElement("select");
-      statusSelect.className = "status-select";
-      HOTEL_STATUS_OPTIONS.forEach(function (s) {
-        var opt = document.createElement("option"); opt.value = s; opt.textContent = s;
-        if (s === h.status) opt.selected = true;
-        statusSelect.appendChild(opt);
-      });
-      statusSelect.addEventListener("change", function () {
-        h.status = statusSelect.value;
+      var statusInner = document.createElement("div");
+      statusInner.className = "status-cell-inner";
+      var statusSelect = buildStatusSelect(HOTEL_STATUS_OPTIONS, h.status, function (value) {
+        h.status = value;
         renderAll();
-        if (NOTION_ENABLED) notionUpdate(h.notionId, { "決定ステータス": h.status }).catch(function (err) {
-          setSyncStatus("ホテルステータスの同期に失敗しました(" + (err && err.code) + ")", true);
-        });
+        syncUpdate(h.notionId, { "決定ステータス": h.status }, "ホテルステータスの同期に失敗しました");
       });
-      tdStatus.appendChild(statusSelect);
-      var dot = document.createElement("span");
-      dot.className = "badge"; dot.style.background = HOTEL_STATUS_COLOR[h.status] || "#999";
-      dot.style.marginLeft = "6px"; dot.textContent = " ";
-      tdStatus.appendChild(dot);
+      var dot = createStatusBadge(HOTEL_STATUS_COLOR[h.status] || "#999");
+      statusInner.appendChild(dot);
+      statusInner.appendChild(statusSelect);
+      tdStatus.appendChild(statusInner);
 
       var tdSearch = document.createElement("td");
       var link = document.createElement("a");
@@ -501,19 +716,13 @@
       tdSearch.appendChild(link);
 
       var tdRm = document.createElement("td");
-      var rmBtn = document.createElement("button");
-      rmBtn.className = "rm-btn"; rmBtn.type = "button"; rmBtn.textContent = "削除";
-      rmBtn.addEventListener("click", function () {
-        state.hotels = state.hotels.filter(function (x) { return x.id !== h.id; });
-        renderAll();
-        if (NOTION_ENABLED) notionSoftDelete(h.notionId).catch(function (err) {
-          setSyncStatus("ホテルの削除の同期に失敗しました(" + (err && err.code) + ")", true);
-        });
-      });
-      tdRm.appendChild(rmBtn);
+      tdRm.appendChild(createRemoveButton("削除", function () { removeItem("hotels", h, "ホテル"); }));
 
-      tr.appendChild(tdName); tr.appendChild(tdPrice); tr.appendChild(tdDates);
-      tr.appendChild(tdGuests); tr.appendChild(tdStatus); tr.appendChild(tdSearch); tr.appendChild(tdRm);
+      tr.appendChild(createCell(h.name, { className: "name-cell" }));
+      tr.appendChild(createCell(formatYen(h.price), { label: "料金" }));
+      tr.appendChild(createCell((h.checkin || "-") + " 〜 " + (h.checkout || "-"), { label: "宿泊日程" }));
+      tr.appendChild(createCell(h.guests != null ? h.guests + "人" : "-", { label: "人数" }));
+      tr.appendChild(tdStatus); tr.appendChild(tdSearch); tr.appendChild(tdRm);
       body.appendChild(tr);
     });
   }
@@ -526,32 +735,14 @@
     sorted.forEach(function (r) {
       var tr = document.createElement("tr");
 
-      var tdName = document.createElement("td");
-      tdName.className = "name-cell"; tdName.textContent = r.name;
-
-      var tdMethod = document.createElement("td");
-      tdMethod.setAttribute("data-label", "手段"); tdMethod.textContent = r.method;
-
-      var tdCost = document.createElement("td");
-      tdCost.setAttribute("data-label", "費用"); tdCost.textContent = formatYen(r.cost);
-
-      var tdMinutes = document.createElement("td");
-      tdMinutes.setAttribute("data-label", "所要時間");
-      tdMinutes.textContent = r.minutes != null ? r.minutes + "分" : "-";
-
       var tdRm = document.createElement("td");
-      var rmBtn = document.createElement("button");
-      rmBtn.className = "rm-btn"; rmBtn.type = "button"; rmBtn.textContent = "削除";
-      rmBtn.addEventListener("click", function () {
-        state.routes = state.routes.filter(function (x) { return x.id !== r.id; });
-        renderAll();
-        if (NOTION_ENABLED) notionSoftDelete(r.notionId).catch(function (err) {
-          setSyncStatus("経路の削除の同期に失敗しました(" + (err && err.code) + ")", true);
-        });
-      });
-      tdRm.appendChild(rmBtn);
+      tdRm.appendChild(createRemoveButton("削除", function () { removeItem("routes", r, "経路"); }));
 
-      tr.appendChild(tdName); tr.appendChild(tdMethod); tr.appendChild(tdCost); tr.appendChild(tdMinutes); tr.appendChild(tdRm);
+      tr.appendChild(createCell(r.name, { className: "name-cell" }));
+      tr.appendChild(createCell(r.method, { label: "手段" }));
+      tr.appendChild(createCell(formatYen(r.cost), { label: "費用" }));
+      tr.appendChild(createCell(r.minutes != null ? r.minutes + "分" : "-", { label: "所要時間" }));
+      tr.appendChild(tdRm);
       body.appendChild(tr);
     });
   }
@@ -563,28 +754,13 @@
     state.expenses.forEach(function (e) {
       var tr = document.createElement("tr");
 
-      var tdName = document.createElement("td");
-      tdName.className = "name-cell"; tdName.textContent = e.name;
-
-      var tdCat = document.createElement("td");
-      tdCat.setAttribute("data-label", "カテゴリ"); tdCat.textContent = e.category;
-
-      var tdAmount = document.createElement("td");
-      tdAmount.setAttribute("data-label", "金額"); tdAmount.textContent = formatYen(e.amount);
-
       var tdRm = document.createElement("td");
-      var rmBtn = document.createElement("button");
-      rmBtn.className = "rm-btn"; rmBtn.type = "button"; rmBtn.textContent = "削除";
-      rmBtn.addEventListener("click", function () {
-        state.expenses = state.expenses.filter(function (x) { return x.id !== e.id; });
-        renderAll();
-        if (NOTION_ENABLED) notionSoftDelete(e.notionId).catch(function (err) {
-          setSyncStatus("費用項目の削除の同期に失敗しました(" + (err && err.code) + ")", true);
-        });
-      });
-      tdRm.appendChild(rmBtn);
+      tdRm.appendChild(createRemoveButton("削除", function () { removeItem("expenses", e, "費用項目"); }));
 
-      tr.appendChild(tdName); tr.appendChild(tdCat); tr.appendChild(tdAmount); tr.appendChild(tdRm);
+      tr.appendChild(createCell(e.name, { className: "name-cell" }));
+      tr.appendChild(createCell(e.category, { label: "カテゴリ" }));
+      tr.appendChild(createCell(formatYen(e.amount), { label: "金額" }));
+      tr.appendChild(tdRm);
       body.appendChild(tr);
     });
   }
@@ -600,31 +776,47 @@
 
       var right = document.createElement("div");
       right.className = "row";
-      var select = document.createElement("select");
-      select.className = "status-select";
-      DEAL_STATUS_OPTIONS.forEach(function (s) {
-        var opt = document.createElement("option"); opt.value = s; opt.textContent = s;
-        if (s === d.status) opt.selected = true;
-        select.appendChild(opt);
-      });
-      select.addEventListener("change", function () {
-        d.status = select.value; renderAll();
-        if (NOTION_ENABLED) notionUpdate(d.notionId, { "状態": d.status }).catch(function (err) {
-          setSyncStatus("お得情報の同期に失敗しました(" + (err && err.code) + ")", true);
-        });
-      });
-      var badge = document.createElement("span");
-      badge.className = "badge"; badge.style.background = DEAL_STATUS_COLOR[d.status] || "#999";
-      badge.textContent = " ";
-
-      var rm = document.createElement("button");
-      rm.type = "button"; rm.className = "rm-btn"; rm.textContent = "削除";
-      rm.addEventListener("click", function () {
-        state.deals = state.deals.filter(function (x) { return x.id !== d.id; });
+      var select = buildStatusSelect(DEAL_STATUS_OPTIONS, d.status, function (value) {
+        d.status = value;
         renderAll();
-        if (NOTION_ENABLED) notionSoftDelete(d.notionId).catch(function (err) {
-          setSyncStatus("お得情報の削除の同期に失敗しました(" + (err && err.code) + ")", true);
-        });
+        syncUpdate(d.notionId, { "状態": d.status }, "お得情報の同期に失敗しました");
+      });
+      var badge = createStatusBadge(DEAL_STATUS_COLOR[d.status] || "#999");
+      var rm = createRemoveButton("削除", function () { removeItem("deals", d, "お得情報"); });
+
+      right.appendChild(badge); right.appendChild(select); right.appendChild(rm);
+      row.appendChild(name); row.appendChild(right);
+      wrap.appendChild(row);
+    });
+  }
+
+  function renderCandidates() {
+    var wrap = document.getElementById("candidateList");
+    wrap.innerHTML = "";
+    state.candidates.forEach(function (c) {
+      var row = document.createElement("div");
+      row.className = "deal-row";
+      var name = document.createElement("button");
+      name.type = "button";
+      name.className = "deal-name";
+      name.style.cssText = "background:none;border:none;padding:0;text-align:left;cursor:pointer;color:inherit;font:inherit;";
+      name.textContent = c.name;
+      name.addEventListener("click", function () {
+        selectedCandidateId = c.id;
+        renderCandidateDetail();
+      });
+
+      var right = document.createElement("div");
+      right.className = "row";
+      var select = buildStatusSelect(CANDIDATE_STATUS_OPTIONS, c.status, function (value) {
+        c.status = value;
+        renderAll();
+        syncUpdate(c.notionId, { "状態": c.status }, "候補メモの同期に失敗しました");
+      });
+      var badge = createStatusBadge(CANDIDATE_STATUS_COLOR[c.status] || "#999");
+      var rm = createRemoveButton("削除", function () {
+        if (selectedCandidateId === c.id) selectedCandidateId = null;
+        removeItem("candidates", c, "候補メモ");
       });
 
       right.appendChild(badge); right.appendChild(select); right.appendChild(rm);
@@ -633,30 +825,107 @@
     });
   }
 
+  function renderCandidateDetail() {
+    var wrap = document.getElementById("candidateDetail");
+    wrap.innerHTML = "";
+    if (!selectedCandidateId) return;
+    var c = findCandidateById(selectedCandidateId);
+    if (!c) { selectedCandidateId = null; return; }
+
+    var box = document.createElement("div");
+    box.className = "event-detail";
+
+    var closeBtn = createRemoveButton("閉じる ✕", function () { selectedCandidateId = null; renderCandidateDetail(); });
+    closeBtn.className += " ed-close";
+    box.appendChild(closeBtn);
+
+    var title = document.createElement("div");
+    title.className = "ed-title"; title.textContent = c.name;
+    box.appendChild(title);
+
+    var statusRow = createDetailRow("状態", c.status);
+    if (statusRow) box.appendChild(statusRow);
+
+    if (c.url) {
+      var urlRow = document.createElement("div");
+      urlRow.className = "ed-row";
+      var b = document.createElement("b"); b.textContent = "参考URL: ";
+      urlRow.appendChild(b);
+      var link = document.createElement("a");
+      link.className = "research-link"; link.href = c.url;
+      link.target = "_blank"; link.rel = "noopener noreferrer";
+      link.textContent = c.url;
+      urlRow.appendChild(link);
+      box.appendChild(urlRow);
+    }
+
+    var memoRow = createDetailRow("メモ", c.memo);
+    if (memoRow) box.appendChild(memoRow);
+
+    var rmBtn = createRemoveButton("この候補を削除", function () {
+      selectedCandidateId = null;
+      removeItem("candidates", c, "候補メモ");
+    });
+    rmBtn.style.marginTop = "8px";
+    box.appendChild(rmBtn);
+
+    wrap.appendChild(box);
+  }
+
   // ---------- Calendar ----------
   var DOW_LABELS = ["日", "月", "火", "水", "木", "金", "土"];
   function pad2(n) { return (n < 10 ? "0" : "") + n; }
   function ymd(y, m, d) { return y + "-" + pad2(m + 1) + "-" + pad2(d); }
 
-  function renderCalendar() {
-    document.getElementById("calMonthLabel").textContent = calView.year + "年" + (calView.month + 1) + "月";
-    var grid = document.getElementById("calGrid");
-    grid.innerHTML = "";
+  function groupEventsByDate(events) {
+    var map = {};
+    events.forEach(function (ev) {
+      if (!ev.date) return;
+      if (!map[ev.date]) map[ev.date] = [];
+      map[ev.date].push(ev);
+    });
+    return map;
+  }
+
+  function createEventTag(ev) {
+    var tag = document.createElement("button");
+    tag.type = "button";
+    tag.className = "cal-tag " + ev.category;
+    tag.textContent = ev.name;
+    tag.addEventListener("click", function () {
+      selectedEventId = ev.id;
+      renderEventDetail();
+    });
+    return tag;
+  }
+
+  function createCalendarDayCell(day, eventsForDay) {
+    var cell = document.createElement("div");
+    cell.className = "cal-day";
+    var num = document.createElement("div");
+    num.className = "d-num"; num.textContent = day;
+    cell.appendChild(num);
+    eventsForDay.forEach(function (ev) { cell.appendChild(createEventTag(ev)); });
+    return cell;
+  }
+
+  function renderCalendarDowLabels(grid) {
     DOW_LABELS.forEach(function (label) {
       var el = document.createElement("div");
       el.className = "cal-dow"; el.textContent = label;
       grid.appendChild(el);
     });
+  }
+
+  function renderCalendar() {
+    document.getElementById("calMonthLabel").textContent = calView.year + "年" + (calView.month + 1) + "月";
+    var grid = document.getElementById("calGrid");
+    grid.innerHTML = "";
+    renderCalendarDowLabels(grid);
 
     var firstDow = new Date(calView.year, calView.month, 1).getDay();
     var daysInMonth = new Date(calView.year, calView.month + 1, 0).getDate();
-
-    var eventsByDate = {};
-    state.events.forEach(function (ev) {
-      if (!ev.date) return;
-      if (!eventsByDate[ev.date]) eventsByDate[ev.date] = [];
-      eventsByDate[ev.date].push(ev);
-    });
+    var eventsByDate = groupEventsByDate(state.events);
 
     for (var i = 0; i < firstDow; i++) {
       var blank = document.createElement("div");
@@ -664,72 +933,61 @@
       grid.appendChild(blank);
     }
     for (var d = 1; d <= daysInMonth; d++) {
-      var cell = document.createElement("div");
-      cell.className = "cal-day";
-      var num = document.createElement("div");
-      num.className = "d-num"; num.textContent = d;
-      cell.appendChild(num);
       var dateStr = ymd(calView.year, calView.month, d);
-      (eventsByDate[dateStr] || []).forEach(function (ev) {
-        var tag = document.createElement("button");
-        tag.type = "button";
-        tag.className = "cal-tag " + ev.category;
-        tag.textContent = ev.name;
-        tag.addEventListener("click", function () {
-          selectedEventId = ev.id;
-          renderEventDetail();
-        });
-        cell.appendChild(tag);
-      });
-      grid.appendChild(cell);
+      grid.appendChild(createCalendarDayCell(d, eventsByDate[dateStr] || []));
     }
+  }
+
+  // ---------- Event detail panel ----------
+  function formatEventTimeRange(ev) {
+    if (!ev.startTime && !ev.endTime) return "";
+    return (ev.startTime || "?") + " 〜 " + (ev.endTime || "?");
+  }
+
+  function createDetailRow(label, value) {
+    if (!value) return null;
+    var row = document.createElement("div");
+    row.className = "ed-row";
+    var b = document.createElement("b"); b.textContent = label + ": ";
+    row.appendChild(b);
+    row.appendChild(document.createTextNode(value));
+    return row;
   }
 
   function renderEventDetail() {
     var wrap = document.getElementById("eventDetail");
     wrap.innerHTML = "";
     if (!selectedEventId) return;
-    var ev = state.events.filter(function (x) { return x.id === selectedEventId; })[0];
+    var ev = findEventById(selectedEventId);
     if (!ev) { selectedEventId = null; return; }
 
     var box = document.createElement("div");
     box.className = "event-detail";
 
-    var closeBtn = document.createElement("button");
-    closeBtn.type = "button"; closeBtn.className = "rm-btn ed-close"; closeBtn.textContent = "閉じる ✕";
-    closeBtn.addEventListener("click", function () { selectedEventId = null; renderEventDetail(); });
+    var closeBtn = createRemoveButton("閉じる ✕", function () { selectedEventId = null; renderEventDetail(); });
+    closeBtn.className += " ed-close";
     box.appendChild(closeBtn);
 
     var title = document.createElement("div");
     title.className = "ed-title"; title.textContent = ev.name;
     box.appendChild(title);
 
-    function edRow(label, value) {
-      if (!value) return;
-      var row = document.createElement("div");
-      row.className = "ed-row";
-      var b = document.createElement("b"); b.textContent = label + ": ";
-      row.appendChild(b);
-      row.appendChild(document.createTextNode(value));
-      box.appendChild(row);
-    }
-    edRow("日付", ev.date);
-    edRow("時間", (ev.startTime || ev.endTime) ? (ev.startTime || "?") + " 〜 " + (ev.endTime || "?") : "");
-    edRow("場所", ev.location);
-    edRow("カテゴリ", ev.category);
-    edRow("メモ", ev.note);
-
-    var rmBtn = document.createElement("button");
-    rmBtn.type = "button"; rmBtn.className = "rm-btn"; rmBtn.style.marginTop = "8px";
-    rmBtn.textContent = "このイベントを削除";
-    rmBtn.addEventListener("click", function () {
-      state.events = state.events.filter(function (x) { return x.id !== ev.id; });
-      selectedEventId = null;
-      renderAll();
-      if (NOTION_ENABLED) notionSoftDelete(ev.notionId).catch(function (err) {
-        setSyncStatus("イベントの削除の同期に失敗しました(" + (err && err.code) + ")", true);
-      });
+    [
+      ["日付", ev.date],
+      ["時間", formatEventTimeRange(ev)],
+      ["場所", ev.location],
+      ["カテゴリ", ev.category],
+      ["メモ", ev.note]
+    ].forEach(function (pair) {
+      var row = createDetailRow(pair[0], pair[1]);
+      if (row) box.appendChild(row);
     });
+
+    var rmBtn = createRemoveButton("このイベントを削除", function () {
+      selectedEventId = null;
+      removeItem("events", ev, "イベント");
+    });
+    rmBtn.style.marginTop = "8px";
     box.appendChild(rmBtn);
 
     wrap.appendChild(box);
@@ -756,15 +1014,7 @@
         selectedEventId = ev.id;
         renderEventDetail();
       });
-      var rm = document.createElement("button");
-      rm.type = "button"; rm.className = "rm-btn"; rm.textContent = "削除";
-      rm.addEventListener("click", function () {
-        state.events = state.events.filter(function (x) { return x.id !== ev.id; });
-        renderAll();
-        if (NOTION_ENABLED) notionSoftDelete(ev.notionId).catch(function (err) {
-          setSyncStatus("イベントの削除の同期に失敗しました(" + (err && err.code) + ")", true);
-        });
-      });
+      var rm = createRemoveButton("削除", function () { removeItem("events", ev, "イベント"); });
       row.appendChild(name); row.appendChild(rm);
       wrap.appendChild(row);
     });
@@ -776,6 +1026,8 @@
     renderRoutes();
     renderExpenses();
     renderDeals();
+    renderCandidates();
+    renderCandidateDetail();
     renderCalendar();
     renderEventDetail();
     renderEventList();
@@ -800,131 +1052,110 @@
     });
   }
 
+  function fieldValue(id) { return document.getElementById(id).value; }
+  function trimmedFieldValue(id) { return fieldValue(id).trim(); }
+  function parseOptionalNumber(id) {
+    var v = fieldValue(id);
+    return v === "" ? null : parseFloat(v);
+  }
+  function clearFields(ids) {
+    ids.forEach(function (id) { document.getElementById(id).value = ""; });
+  }
+
   function init() {
     seedSelects();
 
     document.getElementById("addHotelBtn").addEventListener("click", function () {
-      var name = document.getElementById("hotelName").value.trim();
+      var name = trimmedFieldValue("hotelName");
       if (!name) return;
       var h = {
-        id: "temp-" + (nextTempId++), notionId: null,
+        id: createTempId(), notionId: null,
         name: name,
-        price: (function () { var v = document.getElementById("hotelPrice").value; return v === "" ? null : parseFloat(v); })(),
-        checkin: document.getElementById("hotelCheckin").value || "",
-        checkout: document.getElementById("hotelCheckout").value || "",
-        guests: (function () { var v = document.getElementById("hotelGuests").value; return v === "" ? null : parseFloat(v); })(),
+        price: parseOptionalNumber("hotelPrice"),
+        checkin: fieldValue("hotelCheckin") || "",
+        checkout: fieldValue("hotelCheckout") || "",
+        guests: parseOptionalNumber("hotelGuests"),
         note: "", status: HOTEL_STATUS_OPTIONS[0]
       };
       state.hotels.push(h);
-      ["hotelName", "hotelPrice", "hotelCheckin", "hotelCheckout", "hotelGuests"].forEach(function (id) {
-        document.getElementById(id).value = "";
-      });
+      clearFields(["hotelName", "hotelPrice", "hotelCheckin", "hotelCheckout", "hotelGuests"]);
       renderAll();
-      if (NOTION_ENABLED) {
-        notionCreate(DS.hotels.id, hotelToProps(h)).then(function (res) {
-          var created = res.payload && res.payload.pages && res.payload.pages[0];
-          if (created && created.id) { h.id = created.id; h.notionId = created.id; }
-        }).catch(function (err) {
-          setSyncStatus("ホテルの追加の同期に失敗しました(" + (err && err.code) + ")", true);
-        });
-      }
+      syncCreate(DS.hotels.id, hotelToProps(h), h, "ホテル");
     });
 
     document.getElementById("addRouteBtn").addEventListener("click", function () {
-      var name = document.getElementById("routeName").value.trim();
+      var name = trimmedFieldValue("routeName");
       if (!name) return;
       var r = {
-        id: "temp-" + (nextTempId++), notionId: null,
+        id: createTempId(), notionId: null,
         name: name,
-        method: document.getElementById("routeMethod").value || ROUTE_METHODS[0],
-        cost: (function () { var v = document.getElementById("routeCost").value; return v === "" ? null : parseFloat(v); })(),
-        minutes: (function () { var v = document.getElementById("routeMinutes").value; return v === "" ? null : parseFloat(v); })(),
+        method: fieldValue("routeMethod") || ROUTE_METHODS[0],
+        cost: parseOptionalNumber("routeCost"),
+        minutes: parseOptionalNumber("routeMinutes"),
         note: ""
       };
       state.routes.push(r);
-      ["routeName", "routeCost", "routeMinutes"].forEach(function (id) { document.getElementById(id).value = ""; });
+      clearFields(["routeName", "routeCost", "routeMinutes"]);
       renderAll();
-      if (NOTION_ENABLED) {
-        notionCreate(DS.routes.id, { "経路名": r.name, "手段": r.method, "費用": r.cost, "所要時間_分": r.minutes, "メモ": "" }).then(function (res) {
-          var created = res.payload && res.payload.pages && res.payload.pages[0];
-          if (created && created.id) { r.id = created.id; r.notionId = created.id; }
-        }).catch(function (err) {
-          setSyncStatus("経路の追加の同期に失敗しました(" + (err && err.code) + ")", true);
-        });
-      }
+      syncCreate(DS.routes.id, routeToProps(r), r, "経路");
     });
 
     document.getElementById("addExpenseBtn").addEventListener("click", function () {
-      var name = document.getElementById("expenseName").value.trim();
+      var name = trimmedFieldValue("expenseName");
       if (!name) return;
       var e = {
-        id: "temp-" + (nextTempId++), notionId: null,
+        id: createTempId(), notionId: null,
         name: name,
-        category: document.getElementById("expenseCategory").value || EXPENSE_CATEGORIES[0],
-        amount: (function () { var v = document.getElementById("expenseAmount").value; return v === "" ? null : parseFloat(v); })(),
+        category: fieldValue("expenseCategory") || EXPENSE_CATEGORIES[0],
+        amount: parseOptionalNumber("expenseAmount"),
         note: ""
       };
       state.expenses.push(e);
-      ["expenseName", "expenseAmount"].forEach(function (id) { document.getElementById(id).value = ""; });
+      clearFields(["expenseName", "expenseAmount"]);
       renderAll();
-      if (NOTION_ENABLED) {
-        notionCreate(DS.expenses.id, { "項目名": e.name, "カテゴリ": e.category, "金額": e.amount, "メモ": "" }).then(function (res) {
-          var created = res.payload && res.payload.pages && res.payload.pages[0];
-          if (created && created.id) { e.id = created.id; e.notionId = created.id; }
-        }).catch(function (err) {
-          setSyncStatus("費用項目の追加の同期に失敗しました(" + (err && err.code) + ")", true);
-        });
-      }
+      syncCreate(DS.expenses.id, expenseToProps(e), e, "費用項目");
     });
 
     document.getElementById("addDealBtn").addEventListener("click", function () {
       var input = document.getElementById("dealInput");
       var name = input.value.trim();
       if (!name || state.deals.some(function (d) { return d.name === name; })) return;
-      var d = { id: "temp-" + (nextTempId++), notionId: null, name: name, status: "未検討" };
+      var d = { id: createTempId(), notionId: null, name: name, status: "未検討" };
       state.deals.push(d);
       input.value = "";
       renderAll();
-      if (NOTION_ENABLED) {
-        notionCreate(DS.deals.id, { "項目名": name, "状態": "未検討" }).then(function (res) {
-          var created = res.payload && res.payload.pages && res.payload.pages[0];
-          if (created && created.id) { d.id = created.id; d.notionId = created.id; }
-        }).catch(function (err) {
-          setSyncStatus("お得情報の追加の同期に失敗しました(" + (err && err.code) + ")", true);
-        });
-      }
+      syncCreate(DS.deals.id, dealToProps(d), d, "お得情報");
+    });
+
+    document.getElementById("addCandidateBtn").addEventListener("click", function () {
+      var name = trimmedFieldValue("candidateName");
+      if (!name || state.candidates.some(function (c) { return c.name === name; })) return;
+      var c = { id: createTempId(), notionId: null, name: name, url: trimmedFieldValue("candidateUrl"), memo: "", status: CANDIDATE_STATUS_OPTIONS[0] };
+      state.candidates.push(c);
+      clearFields(["candidateName", "candidateUrl"]);
+      renderAll();
+      syncCreate(DS.candidates.id, candidateToProps(c), c, "候補メモ");
     });
 
     document.getElementById("addEventBtn").addEventListener("click", function () {
-      var name = document.getElementById("eventName").value.trim();
-      var date = document.getElementById("eventDate").value;
+      var name = trimmedFieldValue("eventName");
+      var date = fieldValue("eventDate");
       if (!name || !date) return;
       var ev = {
-        id: "temp-" + (nextTempId++), notionId: null,
+        id: createTempId(), notionId: null,
         name: name, date: date,
-        category: document.getElementById("eventCategory").value || EVENT_CATEGORIES[0],
-        location: document.getElementById("eventLocation").value.trim(),
-        startTime: document.getElementById("eventStartTime").value.trim(),
-        endTime: document.getElementById("eventEndTime").value.trim(),
-        note: document.getElementById("eventNote").value.trim()
+        category: fieldValue("eventCategory") || EVENT_CATEGORIES[0],
+        location: trimmedFieldValue("eventLocation"),
+        startTime: trimmedFieldValue("eventStartTime"),
+        endTime: trimmedFieldValue("eventEndTime"),
+        note: trimmedFieldValue("eventNote")
       };
       state.events.push(ev);
-      ["eventName", "eventDate", "eventLocation", "eventStartTime", "eventEndTime", "eventNote"].forEach(function (id) { document.getElementById(id).value = ""; });
+      clearFields(["eventName", "eventDate", "eventLocation", "eventStartTime", "eventEndTime", "eventNote"]);
       calView.year = parseInt(date.slice(0, 4), 10);
       calView.month = parseInt(date.slice(5, 7), 10) - 1;
       renderAll();
-      if (NOTION_ENABLED) {
-        var props = {
-          "名称": ev.name, "カテゴリ": ev.category, "メモ": ev.note, "date:日付:start": ev.date,
-          "場所": ev.location, "開始時間": ev.startTime, "終了時間": ev.endTime
-        };
-        notionCreate(DS.events.id, props).then(function (res) {
-          var created = res.payload && res.payload.pages && res.payload.pages[0];
-          if (created && created.id) { ev.id = created.id; ev.notionId = created.id; }
-        }).catch(function (err) {
-          setSyncStatus("イベントの追加の同期に失敗しました(" + (err && err.code) + ")", true);
-        });
-      }
+      syncCreate(DS.events.id, eventToProps(ev), ev, "イベント");
     });
 
     document.getElementById("calPrevBtn").addEventListener("click", function () {
@@ -942,19 +1173,20 @@
 
     if (NOTION_ENABLED) {
       setSyncStatus("Notionから読み込んでいます…");
-      Promise.all([loadEvents(), loadHotels(), loadRoutes(), loadExpenses(), loadDeals()]).then(function (results) {
+      Promise.all([loadEvents(), loadHotels(), loadRoutes(), loadExpenses(), loadDeals(), loadCandidates()]).then(function (results) {
         state.events = results[0];
         state.hotels = results[1];
         state.routes = results[2];
         state.expenses = results[3];
         state.deals = results[4];
+        state.candidates = results[5];
         if (!state.deals.length) {
           DEFAULT_DEAL_ITEMS.forEach(function (name) {
-            var d = { id: "temp-" + (nextTempId++), notionId: null, name: name, status: "未検討" };
+            var d = { id: createTempId(), notionId: null, name: name, status: "未検討" };
             state.deals.push(d);
-            notionCreate(DS.deals.id, { "項目名": name, "状態": "未検討" }).then(function (res) {
-              var created = res.payload && res.payload.pages && res.payload.pages[0];
-              if (created && created.id) { d.id = created.id; d.notionId = created.id; }
+            notionCreate(DS.deals.id, dealToProps(d)).then(function (res) {
+              var id = extractCreatedPageId(res);
+              if (id) { d.id = id; d.notionId = id; }
             }).catch(function () {});
           });
         }
@@ -966,7 +1198,7 @@
       });
     } else {
       DEFAULT_DEAL_ITEMS.forEach(function (name) {
-        state.deals.push({ id: "temp-" + (nextTempId++), notionId: null, name: name, status: "未検討" });
+        state.deals.push({ id: createTempId(), notionId: null, name: name, status: "未検討" });
       });
       setSyncStatus("ローカルモードです(このページを閉じるとデータは消えます)");
       renderAll();
