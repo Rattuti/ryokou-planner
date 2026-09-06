@@ -14,7 +14,7 @@
     --accent: #c4623f;
     --accent-dark: #9c4a2e;
     --keep: #4f8f6a;
-    --consider: #c99a3f;
+    --consider: #8a6a1f;
     --letgo: #b3546b;
     --factory: #4a7f8f;
     --family: #5b6f9c;
@@ -96,7 +96,7 @@
   .cal-tag.観光・施設情報 { background: var(--accent); }
   .cal-tag.工場見学 { background: var(--factory); }
   .cal-tag.ファミリー向け { background: var(--family); }
-  .cal-tag.その他 { background: #9ca3af; }
+  .cal-tag.その他 { background: #6b7280; }
   .event-detail {
     margin-top: 10px; padding: 12px 14px; background: var(--bg);
     border: 1px solid var(--border); border-radius: 8px;
@@ -225,7 +225,7 @@
     <p class="desc">一般的なカテゴリの例です。具体的な制度名・条件・対象期間は各サービスの公式情報をご確認ください。自由に項目の追加・削除もできます。</p>
     <div id="dealList"></div>
     <div class="row" style="margin-top:8px;">
-      <input type="text" id="dealInput" placeholder="項目を追加(例: ○○旅行会社のクーポン)">
+      <input type="text" id="dealInput" placeholder="項目を追加(例: ○○旅行会社のクーポン)" aria-label="お得情報の項目を追加">
       <button type="button" class="secondary" id="addDealBtn">追加</button>
     </div>
   </div>
@@ -466,9 +466,16 @@
 
   function syncCreate(dsId, properties, item, label) {
     if (!NOTION_ENABLED) return;
+    var oldId = item.id;
     notionCreate(dsId, properties).then(function (res) {
       var id = extractCreatedPageId(res);
-      if (id) { item.id = id; item.notionId = id; }
+      if (id) {
+        item.id = id; item.notionId = id;
+        // 作成の非同期処理が完了する前に詳細パネルで選択されていた場合、
+        // 選択IDが仮ID(oldId)のままだと一致しなくなり詳細が消えてしまうため追従させる。
+        if (selectedEventId === oldId) { selectedEventId = id; renderEventDetail(); }
+        if (selectedCandidateId === oldId) { selectedCandidateId = id; renderCandidateDetail(); }
+      }
     }).catch(function (err) {
       setSyncStatus(label + "の追加の同期に失敗しました(" + (err && err.code) + ")", true);
     });
