@@ -249,6 +249,7 @@
     <h2>お得情報チェック</h2>
     <p class="desc">一般的なカテゴリの例です。具体的な制度名・条件・対象期間は各サービスの公式情報をご確認ください。自由に項目の追加・削除もできます。</p>
     <div id="dealList"></div>
+    <div class="empty" id="dealEmpty">まだお得情報が登録されていません</div>
     <div class="row" style="margin-top:8px;">
       <input type="text" id="dealInput" placeholder="項目を追加(例: ○○旅行会社のクーポン)" aria-label="お得情報の項目を追加">
       <button type="button" class="secondary" id="addDealBtn">追加</button>
@@ -259,6 +260,7 @@
     <h2>気になる工場見学・お出かけ候補</h2>
     <p class="desc">まだ日程が決まっていない候補をメモしておけます。日付が決まったら「イベントカレンダー」に登録してください。</p>
     <div id="candidateList"></div>
+    <div class="empty" id="candidateEmpty">まだ候補が登録されていません</div>
     <div id="candidateDetail"></div>
     <div class="form-grid" style="margin-top:8px;">
       <label>名称(都道府県・市区町村を先頭に)<input type="text" id="candidateName" placeholder="例: 東京都調布市 - キユーピー マヨテラス"></label>
@@ -868,6 +870,7 @@
   function renderDeals() {
     var wrap = document.getElementById("dealList");
     wrap.innerHTML = "";
+    document.getElementById("dealEmpty").style.display = state.deals.length ? "none" : "block";
     state.deals.forEach(function (d) {
       var row = document.createElement("div");
       row.className = "deal-row";
@@ -895,6 +898,7 @@
   function renderCandidates() {
     var wrap = document.getElementById("candidateList");
     wrap.innerHTML = "";
+    document.getElementById("candidateEmpty").style.display = state.candidates.length ? "none" : "block";
     state.candidates.forEach(function (c) {
       var row = document.createElement("div");
       row.className = "deal-row";
@@ -1178,6 +1182,18 @@
     ids.forEach(function (id) { document.getElementById(id).value = ""; });
   }
 
+  function bindEnterToSubmit(fieldIds, buttonId) {
+    var button = document.getElementById(buttonId);
+    fieldIds.forEach(function (id) {
+      document.getElementById(id).addEventListener("keydown", function (e) {
+        if (e.key === "Enter" && !e.isComposing) {
+          e.preventDefault();
+          button.click();
+        }
+      });
+    });
+  }
+
   function init() {
     seedSelects();
 
@@ -1303,6 +1319,14 @@
       selectedEventId = null;
       renderCalendar(); renderEventDetail(); renderEventList();
     });
+
+    bindEnterToSubmit(["hotelName", "hotelPrice", "hotelCheckin", "hotelCheckout", "hotelGuests"], "addHotelBtn");
+    bindEnterToSubmit(["rentalCarName", "rentalCarPrice", "rentalCarStart", "rentalCarEnd", "rentalCarClass"], "addRentalCarBtn");
+    bindEnterToSubmit(["routeName", "routeCost", "routeMinutes"], "addRouteBtn");
+    bindEnterToSubmit(["expenseName", "expenseAmount"], "addExpenseBtn");
+    bindEnterToSubmit(["dealInput"], "addDealBtn");
+    bindEnterToSubmit(["candidateName", "candidateUrl"], "addCandidateBtn");
+    bindEnterToSubmit(["eventName", "eventDate", "eventLocation", "eventStartTime", "eventEndTime", "eventNote"], "addEventBtn");
 
     DEFAULT_DEAL_ITEMS.forEach(function (name) {
       state.deals.push({ id: createTempId(), notionId: null, name: name, status: "未検討" });
