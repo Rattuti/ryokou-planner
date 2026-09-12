@@ -147,6 +147,7 @@
     <h2>費用の概要</h2>
     <div class="stats">
       <div class="stat"><div class="label">宿泊費</div><div class="value" id="statHotel">¥0</div></div>
+      <div class="stat"><div class="label">レンタカー代</div><div class="value" id="statRentalCar">¥0</div></div>
       <div class="stat"><div class="label">交通費(経路)</div><div class="value" id="statRoute">¥0</div></div>
       <div class="stat"><div class="label">その他費用</div><div class="value" id="statExpense">¥0</div></div>
       <div class="stat"><div class="label" style="color:var(--accent-dark);">合計</div><div class="value" id="statTotal" style="color:var(--accent-dark);">¥0</div></div>
@@ -175,6 +176,30 @@
       </table>
     </div>
     <div class="empty" id="hotelEmpty">まだホテルが登録されていません</div>
+  </div>
+
+  <div class="panel">
+    <h2>レンタカー比較</h2>
+    <p class="desc">候補のレンタカー会社・プランを記録して比較できます。実際の予約・決済はご利用のレンタカー会社のサイトで行ってください。</p>
+    <div class="form-grid">
+      <label>会社名・プラン名<input type="text" id="rentalCarName" placeholder="例: トヨタレンタカー ○○店"></label>
+      <label>料金(円)<input type="number" id="rentalCarPrice" placeholder="例: 12000"></label>
+      <label>利用開始日<input type="date" id="rentalCarStart"></label>
+      <label>返却日<input type="date" id="rentalCarEnd"></label>
+      <label>車種<input type="text" id="rentalCarClass" placeholder="例: コンパクト、ミニバン等"></label>
+    </div>
+    <button type="button" id="addRentalCarBtn">追加</button>
+    <div class="table-wrap">
+      <table>
+        <colgroup>
+          <col style="width:22%"><col style="width:12%"><col style="width:20%">
+          <col style="width:12%"><col style="width:16%"><col style="width:10%"><col style="width:8%">
+        </colgroup>
+        <thead><tr><th>会社名・プラン名</th><th>料金</th><th>利用期間</th><th>車種</th><th>ステータス</th><th>検索</th><th></th></tr></thead>
+        <tbody id="rentalCarBody"></tbody>
+      </table>
+    </div>
+    <div class="empty" id="rentalCarEmpty">まだレンタカーが登録されていません</div>
   </div>
 
   <div class="panel">
@@ -382,6 +407,7 @@
   var DS = {
     events: { id: "9ad11c61-7092-4cf4-aea8-5ab3f5602bc6", view: "view://5ce71963-53f0-4504-bb15-e610149e7366" },
     hotels: { id: "c3873203-d037-4018-ba34-6ab07e81cbe6", view: "view://1e9ba44b-90d9-4348-8a4c-67c0319207c4" },
+    rentalCars: { id: "82bd6c93-10b8-47c7-8531-2ebc814b3790", view: "view://5f1c8a2e-6b4d-4a9f-9e3c-8d7f6a2b1c4e" },
     routes: { id: "75ba56f4-5fc5-45f5-959d-df2ac6eac322", view: "view://1f1b3e4a-b75d-4886-92e1-587c43aa397b" },
     expenses: { id: "32a02048-0dd3-4d73-bc2c-de6171cbaf8a", view: "view://5b9e210a-cf8a-400f-b977-7a11f6bcdb97" },
     candidates: { id: "cce21bd3-bb6b-46e7-9f7e-6a07aea1af7c", view: "view://0ab50047-01d6-4791-885c-d2a0f5a19267" }
@@ -392,6 +418,8 @@
   var EXPENSE_CATEGORIES = ["宿泊費", "交通費", "食費", "観光費", "お土産", "その他"];
   var HOTEL_STATUS_OPTIONS = ["検討中", "予約済み", "見送り"];
   var HOTEL_STATUS_COLOR = { "検討中": "var(--consider)", "予約済み": "var(--keep)", "見送り": "var(--letgo)" };
+  var RENTAL_CAR_STATUS_OPTIONS = ["検討中", "予約済み", "見送り"];
+  var RENTAL_CAR_STATUS_COLOR = { "検討中": "var(--consider)", "予約済み": "var(--keep)", "見送り": "var(--letgo)" };
   var DEAL_STATUS_OPTIONS = ["未検討", "検討中", "活用予定", "対象外"];
   var DEAL_STATUS_COLOR = { "未検討": "#9ca3af", "検討中": "var(--consider)", "活用予定": "var(--keep)", "対象外": "var(--letgo)" };
   var CANDIDATE_STATUS_OPTIONS = ["検討中", "行きたい", "対象外"];
@@ -496,7 +524,7 @@
   }
 
   // ---------- App state ----------
-  var state = { events: [], hotels: [], routes: [], expenses: [], deals: [], candidates: [] };
+  var state = { events: [], hotels: [], rentalCars: [], routes: [], expenses: [], deals: [], candidates: [] };
   var nextTempId = 1;
   var calView = (function () { var d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }; })();
   var selectedEventId = null;
@@ -574,6 +602,36 @@
   }
   function buildHotelSearchUrl(name) {
     return "https://www.google.com/search?q=" + encodeURIComponent(name + " 予約 ホテル");
+  }
+
+  // ---------- Rental cars ----------
+  function rentalCarRowToItem(row) {
+    var pageId = extractPageId(row.url);
+    return {
+      id: pageId, notionId: pageId,
+      name: row["会社名"] || "",
+      price: typeof row["料金"] === "number" ? row["料金"] : null,
+      start: row["date:利用開始日:start"] || "",
+      end: row["date:返却日:start"] || "",
+      carClass: row["車種"] || "",
+      note: row["メモ"] || "",
+      status: row["決定ステータス"] || "検討中"
+    };
+  }
+  function rentalCarToProps(c) {
+    var props = {
+      "会社名": c.name, "料金": c.price, "車種": c.carClass || "",
+      "メモ": c.note || "", "決定ステータス": c.status
+    };
+    if (c.start) props["date:利用開始日:start"] = c.start;
+    if (c.end) props["date:返却日:start"] = c.end;
+    return props;
+  }
+  function loadRentalCars() {
+    return loadCollection(DS.rentalCars.view, rentalCarRowToItem);
+  }
+  function buildRentalCarSearchUrl(name) {
+    return "https://www.google.com/search?q=" + encodeURIComponent(name + " レンタカー 予約");
   }
 
   // ---------- Routes ----------
@@ -674,12 +732,15 @@
   function renderStats() {
     var hotelTotal = state.hotels.filter(function (h) { return h.status !== "見送り"; })
       .reduce(function (sum, h) { return sum + (h.price || 0); }, 0);
+    var rentalCarTotal = state.rentalCars.filter(function (c) { return c.status !== "見送り"; })
+      .reduce(function (sum, c) { return sum + (c.price || 0); }, 0);
     var routeTotal = state.routes.reduce(function (sum, r) { return sum + (r.cost || 0); }, 0);
     var expenseTotal = state.expenses.reduce(function (sum, e) { return sum + (e.amount || 0); }, 0);
     document.getElementById("statHotel").textContent = formatYen(hotelTotal);
+    document.getElementById("statRentalCar").textContent = formatYen(rentalCarTotal);
     document.getElementById("statRoute").textContent = formatYen(routeTotal);
     document.getElementById("statExpense").textContent = formatYen(expenseTotal);
-    document.getElementById("statTotal").textContent = formatYen(hotelTotal + routeTotal + expenseTotal);
+    document.getElementById("statTotal").textContent = formatYen(hotelTotal + rentalCarTotal + routeTotal + expenseTotal);
   }
 
   function renderHotels() {
@@ -719,6 +780,48 @@
       tr.appendChild(createCell(formatYen(h.price), { label: "料金" }));
       tr.appendChild(createCell((h.checkin || "-") + " 〜 " + (h.checkout || "-"), { label: "宿泊日程" }));
       tr.appendChild(createCell(h.guests != null ? h.guests + "人" : "-", { label: "人数" }));
+      tr.appendChild(tdStatus); tr.appendChild(tdSearch); tr.appendChild(tdRm);
+      body.appendChild(tr);
+    });
+  }
+
+  function renderRentalCars() {
+    var body = document.getElementById("rentalCarBody");
+    body.innerHTML = "";
+    document.getElementById("rentalCarEmpty").style.display = state.rentalCars.length ? "none" : "block";
+    var sorted = state.rentalCars.slice().sort(function (a, b) { return (a.price || Infinity) - (b.price || Infinity); });
+    sorted.forEach(function (c) {
+      var tr = document.createElement("tr");
+
+      var tdStatus = document.createElement("td");
+      tdStatus.className = "status-cell";
+      tdStatus.setAttribute("data-label", "ステータス");
+      var statusInner = document.createElement("div");
+      statusInner.className = "status-cell-inner";
+      var statusSelect = buildStatusSelect(RENTAL_CAR_STATUS_OPTIONS, c.status, function (value) {
+        c.status = value;
+        renderAll();
+        syncUpdate(c.notionId, { "決定ステータス": c.status }, "レンタカーステータスの同期に失敗しました");
+      });
+      var dot = createStatusBadge(RENTAL_CAR_STATUS_COLOR[c.status] || "#999");
+      statusInner.appendChild(dot);
+      statusInner.appendChild(statusSelect);
+      tdStatus.appendChild(statusInner);
+
+      var tdSearch = document.createElement("td");
+      var link = document.createElement("a");
+      link.className = "research-link"; link.href = buildRentalCarSearchUrl(c.name);
+      link.target = "_blank"; link.rel = "noopener noreferrer";
+      link.textContent = "検索 →";
+      tdSearch.appendChild(link);
+
+      var tdRm = document.createElement("td");
+      tdRm.appendChild(createRemoveButton("削除", function () { removeItem("rentalCars", c, "レンタカー"); }));
+
+      tr.appendChild(createCell(c.name, { className: "name-cell" }));
+      tr.appendChild(createCell(formatYen(c.price), { label: "料金" }));
+      tr.appendChild(createCell((c.start || "-") + " 〜 " + (c.end || "-"), { label: "利用期間" }));
+      tr.appendChild(createCell(c.carClass || "-", { label: "車種" }));
       tr.appendChild(tdStatus); tr.appendChild(tdSearch); tr.appendChild(tdRm);
       body.appendChild(tr);
     });
@@ -805,6 +908,19 @@
         renderCandidateDetail();
       });
 
+      var nameWrap = document.createElement("div");
+      nameWrap.className = "row";
+      nameWrap.style.gap = "6px";
+      nameWrap.appendChild(name);
+      if (c.url) {
+        var srcLink = document.createElement("a");
+        srcLink.className = "research-link"; srcLink.href = c.url;
+        srcLink.target = "_blank"; srcLink.rel = "noopener noreferrer";
+        srcLink.title = c.url;
+        srcLink.textContent = "🔗 情報元";
+        nameWrap.appendChild(srcLink);
+      }
+
       var right = document.createElement("div");
       right.className = "row";
       var select = buildStatusSelect(CANDIDATE_STATUS_OPTIONS, c.status, function (value) {
@@ -819,7 +935,7 @@
       });
 
       right.appendChild(badge); right.appendChild(select); right.appendChild(rm);
-      row.appendChild(name); row.appendChild(right);
+      row.appendChild(nameWrap); row.appendChild(right);
       wrap.appendChild(row);
     });
   }
@@ -1022,6 +1138,7 @@
   function renderAll() {
     renderStats();
     renderHotels();
+    renderRentalCars();
     renderRoutes();
     renderExpenses();
     renderDeals();
@@ -1080,6 +1197,24 @@
       clearFields(["hotelName", "hotelPrice", "hotelCheckin", "hotelCheckout", "hotelGuests"]);
       renderAll();
       syncCreate(DS.hotels.id, hotelToProps(h), h, "ホテル");
+    });
+
+    document.getElementById("addRentalCarBtn").addEventListener("click", function () {
+      var name = trimmedFieldValue("rentalCarName");
+      if (!name) return;
+      var c = {
+        id: createTempId(), notionId: null,
+        name: name,
+        price: parseOptionalNumber("rentalCarPrice"),
+        start: fieldValue("rentalCarStart") || "",
+        end: fieldValue("rentalCarEnd") || "",
+        carClass: trimmedFieldValue("rentalCarClass"),
+        note: "", status: RENTAL_CAR_STATUS_OPTIONS[0]
+      };
+      state.rentalCars.push(c);
+      clearFields(["rentalCarName", "rentalCarPrice", "rentalCarStart", "rentalCarEnd", "rentalCarClass"]);
+      renderAll();
+      syncCreate(DS.rentalCars.id, rentalCarToProps(c), c, "レンタカー");
     });
 
     document.getElementById("addRouteBtn").addEventListener("click", function () {
@@ -1175,12 +1310,13 @@
 
     if (NOTION_ENABLED) {
       setSyncStatus("Notionから読み込んでいます…");
-      Promise.all([loadEvents(), loadHotels(), loadRoutes(), loadExpenses(), loadCandidates()]).then(function (results) {
+      Promise.all([loadEvents(), loadHotels(), loadRentalCars(), loadRoutes(), loadExpenses(), loadCandidates()]).then(function (results) {
         state.events = results[0];
         state.hotels = results[1];
-        state.routes = results[2];
-        state.expenses = results[3];
-        state.candidates = results[4];
+        state.rentalCars = results[2];
+        state.routes = results[3];
+        state.expenses = results[4];
+        state.candidates = results[5];
         renderAll();
         setSyncStatus("Notionと同期中(他の端末からも同じデータが見えます)");
       }).catch(function (err) {
