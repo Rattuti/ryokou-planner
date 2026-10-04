@@ -159,10 +159,10 @@
     <p class="desc">候補ホテルを記録して比較できます。実際の予約・決済はご利用の予約サイトで行ってください。</p>
     <div class="form-grid">
       <label>ホテル名<input type="text" id="hotelName" placeholder="例: ○○リゾートホテル"></label>
-      <label>料金(円)<input type="number" id="hotelPrice" placeholder="例: 25000"></label>
+      <label>料金(円)<input type="number" id="hotelPrice" min="0" placeholder="例: 25000"></label>
       <label>チェックイン<input type="date" id="hotelCheckin"></label>
       <label>チェックアウト<input type="date" id="hotelCheckout"></label>
-      <label>人数<input type="number" id="hotelGuests" placeholder="例: 4"></label>
+      <label>人数<input type="number" id="hotelGuests" min="0" placeholder="例: 4"></label>
     </div>
     <button type="button" id="addHotelBtn">追加</button>
     <div class="table-wrap">
@@ -183,7 +183,7 @@
     <p class="desc">候補のレンタカー会社・プランを記録して比較できます。実際の予約・決済はご利用のレンタカー会社のサイトで行ってください。</p>
     <div class="form-grid">
       <label>会社名・プラン名<input type="text" id="rentalCarName" placeholder="例: トヨタレンタカー ○○店"></label>
-      <label>料金(円)<input type="number" id="rentalCarPrice" placeholder="例: 12000"></label>
+      <label>料金(円)<input type="number" id="rentalCarPrice" min="0" placeholder="例: 12000"></label>
       <label>利用開始日<input type="date" id="rentalCarStart"></label>
       <label>返却日<input type="date" id="rentalCarEnd"></label>
       <label>車種<input type="text" id="rentalCarClass" placeholder="例: コンパクト、ミニバン等"></label>
@@ -208,8 +208,8 @@
     <div class="form-grid">
       <label>経路名<input type="text" id="routeName" placeholder="例: 自宅→○○駅"></label>
       <label>手段<select id="routeMethod"></select></label>
-      <label>費用(円)<input type="number" id="routeCost" placeholder="例: 12000"></label>
-      <label>所要時間(分)<input type="number" id="routeMinutes" placeholder="例: 180"></label>
+      <label>費用(円)<input type="number" id="routeCost" min="0" placeholder="例: 12000"></label>
+      <label>所要時間(分)<input type="number" id="routeMinutes" min="0" placeholder="例: 180"></label>
     </div>
     <button type="button" id="addRouteBtn">追加</button>
     <div class="table-wrap">
@@ -230,7 +230,7 @@
     <div class="form-grid">
       <label>項目名<input type="text" id="expenseName" placeholder="例: 水族館の入場料"></label>
       <label>カテゴリ<select id="expenseCategory"></select></label>
-      <label>金額(円)<input type="number" id="expenseAmount" placeholder="例: 8000"></label>
+      <label>金額(円)<input type="number" id="expenseAmount" min="0" placeholder="例: 8000"></label>
     </div>
     <button type="button" id="addExpenseBtn">追加</button>
     <div class="table-wrap">
@@ -273,6 +273,7 @@
   <div class="panel">
     <h2>お得情報チェック</h2>
     <p class="desc">一般的なカテゴリの例です。具体的な制度名・条件・対象期間は各サービスの公式情報をご確認ください。自由に項目の追加・削除もできます。</p>
+    <p class="hint" style="margin:0 0 10px;">※この項目はNotionに保存されないため、ページを再読み込みするとチェック状態がリセットされます</p>
     <div id="dealList"></div>
     <div class="empty" id="dealEmpty">まだお得情報が登録されていません</div>
     <div class="row" style="margin-top:8px;">
@@ -331,10 +332,13 @@
       }
 
       function getAppKey() {
-        var key = localStorage.getItem(APP_KEY_STORAGE);
+        // localStorageがブロックされた環境(プライベートブラウズ等)でも
+        // ここで例外が投げられて同期処理全体が落ちないようにガードする。
+        var key = null;
+        try { key = localStorage.getItem(APP_KEY_STORAGE); } catch (e) { key = null; }
         if (!key) {
           key = window.prompt("Notion連携用のアプリキーを入力してください");
-          if (key) localStorage.setItem(APP_KEY_STORAGE, key);
+          if (key) { try { localStorage.setItem(APP_KEY_STORAGE, key); } catch (e) {} }
         }
         return key;
       }
@@ -347,7 +351,7 @@
           body: JSON.stringify(body)
         }).then(function (res) {
           if (res.status === 401) {
-            localStorage.removeItem(APP_KEY_STORAGE);
+            try { localStorage.removeItem(APP_KEY_STORAGE); } catch (e) {}
             return Promise.reject({ code: "unauthorized", message: "アプリキーが正しくありません" });
           }
           if (!res.ok) {
@@ -715,6 +719,7 @@
     badge.className = "badge";
     badge.style.background = color;
     badge.textContent = " ";
+    badge.setAttribute("aria-hidden", "true"); // 状態は隣接するselectのテキストで伝わるため、装飾用の色ドットは読み上げ対象から外す
     return badge;
   }
 
