@@ -723,9 +723,10 @@
     return badge;
   }
 
-  function buildStatusSelect(options, current, onChange) {
+  function buildStatusSelect(options, current, onChange, ariaLabel) {
     var select = document.createElement("select");
     select.className = "status-select";
+    if (ariaLabel) select.setAttribute("aria-label", ariaLabel);
     options.forEach(function (s) {
       var opt = document.createElement("option"); opt.value = s; opt.textContent = s;
       if (s === current) opt.selected = true;
@@ -767,7 +768,7 @@
         h.status = value;
         renderAll();
         syncUpdate(h.notionId, { "決定ステータス": h.status }, "ホテルステータスの同期に失敗しました");
-      });
+      }, h.name + "のステータス");
       var dot = createStatusBadge(HOTEL_STATUS_COLOR[h.status] || "#999");
       statusInner.appendChild(dot);
       statusInner.appendChild(statusSelect);
@@ -809,7 +810,7 @@
         c.status = value;
         renderAll();
         syncUpdate(c.notionId, { "決定ステータス": c.status }, "レンタカーステータスの同期に失敗しました");
-      });
+      }, c.name + "のステータス");
       var dot = createStatusBadge(RENTAL_CAR_STATUS_COLOR[c.status] || "#999");
       statusInner.appendChild(dot);
       statusInner.appendChild(statusSelect);
@@ -887,7 +888,7 @@
       var select = buildStatusSelect(DEAL_STATUS_OPTIONS, d.status, function (value) {
         d.status = value;
         renderAll();
-      });
+      }, d.name + "のステータス");
       var badge = createStatusBadge(DEAL_STATUS_COLOR[d.status] || "#999");
       var rm = createRemoveButton("削除", function () {
         state.deals = state.deals.filter(function (x) { return x.id !== d.id; });
@@ -936,7 +937,7 @@
         c.status = value;
         renderAll();
         syncUpdate(c.notionId, { "状態": c.status }, "候補メモの同期に失敗しました");
-      });
+      }, c.name + "のステータス");
       var badge = createStatusBadge(CANDIDATE_STATUS_COLOR[c.status] || "#999");
       var rm = createRemoveButton("削除", function () {
         if (selectedCandidateId === c.id) selectedCandidateId = null;
@@ -1016,6 +1017,7 @@
     tag.type = "button";
     tag.className = "cal-tag " + ev.category;
     tag.textContent = ev.name;
+    tag.title = ev.category + ": " + ev.name;
     tag.addEventListener("click", function () {
       selectedEventId = ev.id;
       renderEventDetail();
