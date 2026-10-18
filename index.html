@@ -16,7 +16,7 @@
     --keep: #4f8f6a;
     --consider: #8a6a1f;
     --letgo: #b3546b;
-    --factory: #4a7f8f;
+    --factory: #45798a;
     --family: #5b6f9c;
   }
   * { box-sizing: border-box; }
@@ -291,6 +291,7 @@
     <div class="form-grid" style="margin-top:8px;">
       <label>名称(都道府県・市区町村を先頭に)<input type="text" id="candidateName" placeholder="例: 東京都調布市 - キユーピー マヨテラス"></label>
       <label>参考URL<input type="text" id="candidateUrl" placeholder="任意"></label>
+      <label>メモ<input type="text" id="candidateMemo" placeholder="任意"></label>
     </div>
     <button type="button" class="secondary" id="addCandidateBtn">追加</button>
   </div>
@@ -1286,9 +1287,9 @@
     document.getElementById("addCandidateBtn").addEventListener("click", function () {
       var name = trimmedFieldValue("candidateName");
       if (!name || state.candidates.some(function (c) { return c.name === name; })) return;
-      var c = { id: createTempId(), notionId: null, name: name, url: trimmedFieldValue("candidateUrl"), memo: "", status: CANDIDATE_STATUS_OPTIONS[0] };
+      var c = { id: createTempId(), notionId: null, name: name, url: trimmedFieldValue("candidateUrl"), memo: trimmedFieldValue("candidateMemo"), status: CANDIDATE_STATUS_OPTIONS[0] };
       state.candidates.push(c);
-      clearFields(["candidateName", "candidateUrl"]);
+      clearFields(["candidateName", "candidateUrl", "candidateMemo"]);
       renderAll();
       syncCreate(DS.candidates.id, candidateToProps(c), c, "候補メモ");
     });
@@ -1332,7 +1333,7 @@
     bindEnterToSubmit(["routeName", "routeCost", "routeMinutes"], "addRouteBtn");
     bindEnterToSubmit(["expenseName", "expenseAmount"], "addExpenseBtn");
     bindEnterToSubmit(["dealInput"], "addDealBtn");
-    bindEnterToSubmit(["candidateName", "candidateUrl"], "addCandidateBtn");
+    bindEnterToSubmit(["candidateName", "candidateUrl", "candidateMemo"], "addCandidateBtn");
     bindEnterToSubmit(["eventName", "eventDate", "eventLocation", "eventStartTime", "eventEndTime", "eventNote"], "addEventBtn");
 
     DEFAULT_DEAL_ITEMS.forEach(function (name) {
