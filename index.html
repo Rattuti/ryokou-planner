@@ -11,11 +11,11 @@
     --border: #e8ddd4;
     --text: #2e2620;
     --muted: #7a6f66;
-    --accent: #c4623f;
+    --accent: #b05838;
     --accent-dark: #9c4a2e;
     --keep: #4f8f6a;
     --consider: #8a6a1f;
-    --letgo: #b3546b;
+    --letgo: #aa4f65;
     --factory: #45798a;
     --family: #5b6f9c;
   }
@@ -280,6 +280,7 @@
       <input type="text" id="dealInput" placeholder="項目を追加(例: ○○旅行会社のクーポン)" aria-label="お得情報の項目を追加">
       <button type="button" class="secondary" id="addDealBtn">追加</button>
     </div>
+    <p class="hint" id="dealDupHint" style="display:none;">同じ名前の項目がすでに登録されています</p>
   </div>
 
   <div class="panel">
@@ -294,6 +295,7 @@
       <label>メモ<input type="text" id="candidateMemo" placeholder="任意"></label>
     </div>
     <button type="button" class="secondary" id="addCandidateBtn">追加</button>
+    <p class="hint" id="candidateDupHint" style="display:none;">同じ名前の候補がすでに登録されています</p>
   </div>
 </div>
 
@@ -1277,7 +1279,13 @@
     document.getElementById("addDealBtn").addEventListener("click", function () {
       var input = document.getElementById("dealInput");
       var name = input.value.trim();
-      if (!name || state.deals.some(function (d) { return d.name === name; })) return;
+      var dupHint = document.getElementById("dealDupHint");
+      if (!name) return;
+      if (state.deals.some(function (d) { return d.name === name; })) {
+        dupHint.style.display = "block";
+        return;
+      }
+      dupHint.style.display = "none";
       var d = { id: createTempId(), notionId: null, name: name, status: "未検討" };
       state.deals.push(d);
       input.value = "";
@@ -1286,7 +1294,13 @@
 
     document.getElementById("addCandidateBtn").addEventListener("click", function () {
       var name = trimmedFieldValue("candidateName");
-      if (!name || state.candidates.some(function (c) { return c.name === name; })) return;
+      var candidateDupHint = document.getElementById("candidateDupHint");
+      if (!name) return;
+      if (state.candidates.some(function (c) { return c.name === name; })) {
+        candidateDupHint.style.display = "block";
+        return;
+      }
+      candidateDupHint.style.display = "none";
       var c = { id: createTempId(), notionId: null, name: name, url: trimmedFieldValue("candidateUrl"), memo: trimmedFieldValue("candidateMemo"), status: CANDIDATE_STATUS_OPTIONS[0] };
       state.candidates.push(c);
       clearFields(["candidateName", "candidateUrl", "candidateMemo"]);
