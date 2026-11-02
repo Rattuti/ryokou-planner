@@ -135,7 +135,7 @@
     border: 1px solid var(--border); border-radius: 8px;
   }
   .event-detail .ed-title { font-weight: 700; font-size: 0.95rem; margin-bottom: 4px; }
-  .event-detail .ed-row { font-size: 0.82rem; color: var(--muted); margin-top: 2px; }
+  .event-detail .ed-row { font-size: 0.82rem; color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
   .event-detail .ed-row b { color: var(--text); font-weight: 600; }
   .event-detail .ed-close { float: right; }
 
@@ -488,6 +488,13 @@
   var CANDIDATE_STATUS_COLOR = { "検討中": "var(--consider)", "行きたい": "var(--keep)", "対象外": "var(--letgo)" };
   var CANDIDATE_STATUS_ORDER = ["行きたい", "検討中", "対象外"];
   var CANDIDATE_NO_PREF = "(都道府県なし)";
+  // 名称に都道府県が書かれていない候補用の手がかり。候補に出てくる地名だけを持つ
+  var PREF_HINTS = {
+    "大阪": "大阪府", "堺市": "大阪府", "河内長野市": "大阪府", "富田林市": "大阪府", "交野市": "大阪府", "池田市": "大阪府", "高槻市": "大阪府", "天王寺": "大阪府", "万博記念公園": "大阪府",
+    "京都": "京都府", "KYOTO": "京都府", "木津川市": "京都府",
+    "奈良": "奈良県", "生駒市": "奈良県", "天理市": "奈良県", "桜井市": "奈良県", "香芝市": "奈良県", "三郷町": "奈良県",
+    "神戸": "兵庫県", "西宮市": "兵庫県"
+  };
   var PREFECTURES = ["北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県", "茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県", "新潟県", "富山県", "石川県", "福井県", "山梨県", "長野県", "岐阜県", "静岡県", "愛知県", "三重県", "滋賀県", "京都府", "大阪府", "兵庫県", "奈良県", "和歌山県", "鳥取県", "島根県", "岡山県", "広島県", "山口県", "徳島県", "香川県", "愛媛県", "高知県", "福岡県", "佐賀県", "長崎県", "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"];
   var DEFAULT_DEAL_ITEMS = [
     "早期予約割引",
@@ -961,8 +968,20 @@
     });
   }
 
+  function firstKeyInText(text, keys) {
+    var found = "", foundAt = -1;
+    keys.forEach(function (k) {
+      var at = text.indexOf(k);
+      if (at !== -1 && (foundAt === -1 || at < foundAt)) { found = k; foundAt = at; }
+    });
+    return found;
+  }
+
   function candidatePref(c) {
-    return PREFECTURES.filter(function (p) { return c.name.indexOf(p) === 0; })[0] || CANDIDATE_NO_PREF;
+    var pref = firstKeyInText(c.name, PREFECTURES);
+    if (pref) return pref;
+    var hint = firstKeyInText(c.name, Object.keys(PREF_HINTS));
+    return hint ? PREF_HINTS[hint] : CANDIDATE_NO_PREF;
   }
 
   function prefRank(pref) {
@@ -1202,8 +1221,25 @@
     row.className = "ed-row";
     var b = document.createElement("b"); b.textContent = label + ": ";
     row.appendChild(b);
-    row.appendChild(document.createTextNode(value));
+    appendLinkedText(row, value);
     return row;
+  }
+
+  // 本文中のURLをリンクにする(自動登録のメモは「情報源: https://… 、 https://…」の形で届く)
+  function appendLinkedText(parent, text) {
+    var pattern = /https?:\/\/[A-Za-z0-9\-._~:\/?#\[\]@!$&'*+,;=%]+/g;
+    var last = 0, m;
+    while ((m = pattern.exec(text))) {
+      var url = m[0].replace(/[.,;:!?'\]]+$/, "");
+      parent.appendChild(document.createTextNode(text.slice(last, m.index)));
+      var a = document.createElement("a");
+      a.className = "research-link"; a.href = url;
+      a.target = "_blank"; a.rel = "noopener noreferrer";
+      a.textContent = url;
+      parent.appendChild(a);
+      last = m.index + url.length;
+    }
+    parent.appendChild(document.createTextNode(text.slice(last)));
   }
 
   function renderEventDetail() {
