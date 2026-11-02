@@ -18,6 +18,12 @@
     --letgo: #aa4f65;
     --factory: #45798a;
     --family: #5b6f9c;
+    --cal-today: #fff3b8;
+    --cal-today-line: #d3ae2f;
+    --cal-sat: #e9f1fb;
+    --cal-sat-text: #2f5f9e;
+    --cal-sun: #fdeaea;
+    --cal-sun-text: #b23a3a;
   }
   * { box-sizing: border-box; }
   body {
@@ -84,11 +90,37 @@
   .deal-name { font-size: 0.88rem; }
 
   /* calendar */
-  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin-top: 10px; }
-  .cal-dow { text-align: center; font-size: 0.75rem; color: var(--muted); padding: 2px 0; }
+  .cal-sticky {
+    position: sticky; top: 8px; z-index: 2; display: flex; flex-direction: column; gap: 10px;
+    max-height: 72vh; margin-top: 16px; padding-bottom: 8px;
+    background: var(--panel); border-bottom: 2px solid var(--border);
+  }
+  .cal-nav { flex: none; flex-wrap: nowrap; align-items: flex-start; }
+  .cal-nav > button { flex: none; }
+  .cal-month { flex: none; min-width: 110px; padding-top: 7px; font-weight: 600; text-align: center; }
+  .cal-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; padding-right: 4px; }
+  .cal-scroll::-webkit-scrollbar { width: 14px; }
+  .cal-scroll::-webkit-scrollbar-track { background: var(--bg); border-radius: 7px; }
+  .cal-scroll::-webkit-scrollbar-thumb { background: #b9aca1; border-radius: 7px; border: 2px solid var(--bg); }
+  .cal-scroll::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+  #eventDetail { flex: 1 1 auto; min-width: 0; max-height: 28vh; overflow-y: auto; }
+  #eventDetail .event-detail { margin-top: 0; }
+  .cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .cal-dow {
+    position: sticky; top: 0; z-index: 1; text-align: center; font-size: 0.75rem; color: var(--muted);
+    padding: 2px 0; background: var(--panel); box-shadow: 0 4px 0 var(--panel);
+  }
+  .cal-dow.sat { color: var(--cal-sat-text); background: var(--cal-sat); }
+  .cal-dow.sun { color: var(--cal-sun-text); background: var(--cal-sun); }
   .cal-day { border: 1px solid var(--border); border-radius: 6px; min-height: 64px; padding: 4px; font-size: 0.75rem; }
   .cal-day.empty { border: none; }
   .cal-day .d-num { font-size: 0.75rem; color: var(--muted); }
+  .cal-day.sat { background: var(--cal-sat); }
+  .cal-day.sun { background: var(--cal-sun); }
+  .cal-day.sat .d-num { color: var(--cal-sat-text); }
+  .cal-day.sun .d-num { color: var(--cal-sun-text); }
+  .cal-day.today { background: var(--cal-today); border-color: var(--cal-today-line); }
+  .cal-day.today .d-num { color: var(--text); font-weight: 700; }
   .cal-tag { display: block; border-radius: 4px; padding: 1px 4px; margin-top: 2px; font-size: 0.68rem; color: #fff; line-height: 1.3; cursor: pointer; border: none; width: 100%; text-align: left; font: inherit; background: #6b7280; }
   .cal-tag:hover { opacity: 0.85; }
   .cal-tag.花火大会 { background: var(--letgo); }
@@ -97,6 +129,7 @@
   .cal-tag.工場見学 { background: var(--factory); }
   .cal-tag.ファミリー向け { background: var(--family); }
   .cal-tag.その他 { background: #6b7280; }
+  .candidate-add { padding-top: 10px; border-top: 1px solid var(--border); }
   .event-detail {
     margin-top: 10px; padding: 12px 14px; background: var(--bg);
     border: 1px solid var(--border); border-radius: 8px;
@@ -132,6 +165,8 @@
     td select, td input { width: 100%; box-sizing: border-box; }
     .status-select, button { min-height: 40px; }
     .cal-day { min-height: 44px; }
+    .cal-nav { flex-wrap: wrap; }
+    #eventDetail { flex-basis: 100%; }
   }
 </style>
 </head>
@@ -259,13 +294,17 @@
     </div>
     <button type="button" id="addEventBtn">追加</button>
 
-    <div class="row" style="margin-top:16px; align-items:center;">
-      <button type="button" class="secondary" id="calPrevBtn">◀ 前月</button>
-      <div id="calMonthLabel" style="font-weight:600; min-width:110px; text-align:center;"></div>
-      <button type="button" class="secondary" id="calNextBtn">次月 ▶</button>
+    <div class="cal-sticky">
+      <div class="row cal-nav">
+        <button type="button" class="secondary" id="calPrevBtn">◀ 前月</button>
+        <div id="calMonthLabel" class="cal-month"></div>
+        <button type="button" class="secondary" id="calNextBtn">次月 ▶</button>
+        <div id="eventDetail"></div>
+      </div>
+      <div class="cal-scroll" id="calScroll" tabindex="0" aria-label="カレンダー">
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
     </div>
-    <div class="cal-grid" id="calGrid"></div>
-    <div id="eventDetail"></div>
     <div class="hint" id="eventListHint" style="margin-top:10px;"></div>
     <div id="eventList"></div>
   </div>
@@ -286,16 +325,30 @@
   <div class="panel">
     <h2>気になる工場見学・お出かけ候補</h2>
     <p class="desc">まだ日程が決まっていない候補をメモしておけます。日付が決まったら「イベントカレンダー」に登録してください。</p>
-    <div id="candidateList"></div>
-    <div class="empty" id="candidateEmpty">まだ候補が登録されていません</div>
-    <div id="candidateDetail"></div>
-    <div class="form-grid" style="margin-top:8px;">
+    <div class="form-grid">
+      <label>キーワード(名称・メモ)<input type="text" id="candidateSearch" placeholder="例: 工場、水族館"></label>
+      <label>状態<select id="candidateStatusFilter"></select></label>
+      <label>都道府県<select id="candidatePrefFilter"></select></label>
+      <label>並び順
+        <select id="candidateSort">
+          <option value="default">Notionの並び順</option>
+          <option value="pref">都道府県順(北から)</option>
+          <option value="status">状態順(行きたいが先)</option>
+          <option value="name">名称順</option>
+        </select>
+      </label>
+    </div>
+    <div class="form-grid candidate-add">
       <label>名称(都道府県・市区町村を先頭に)<input type="text" id="candidateName" placeholder="例: 東京都調布市 - キユーピー マヨテラス"></label>
       <label>参考URL<input type="text" id="candidateUrl" placeholder="任意"></label>
       <label>メモ<input type="text" id="candidateMemo" placeholder="任意"></label>
     </div>
     <button type="button" class="secondary" id="addCandidateBtn">追加</button>
     <p class="hint" id="candidateDupHint" style="display:none;">同じ名前の候補がすでに登録されています</p>
+    <div id="candidateDetail"></div>
+    <p class="hint" id="candidateCount"></p>
+    <div id="candidateList"></div>
+    <div class="empty" id="candidateEmpty">まだ候補が登録されていません</div>
   </div>
 </div>
 
@@ -433,6 +486,9 @@
   var DEAL_STATUS_COLOR = { "未検討": "#9ca3af", "検討中": "var(--consider)", "活用予定": "var(--keep)", "対象外": "var(--letgo)" };
   var CANDIDATE_STATUS_OPTIONS = ["検討中", "行きたい", "対象外"];
   var CANDIDATE_STATUS_COLOR = { "検討中": "var(--consider)", "行きたい": "var(--keep)", "対象外": "var(--letgo)" };
+  var CANDIDATE_STATUS_ORDER = ["行きたい", "検討中", "対象外"];
+  var CANDIDATE_NO_PREF = "(都道府県なし)";
+  var PREFECTURES = ["北海道", "青森県", "岩手県", "宮城県", "秋田県", "山形県", "福島県", "茨城県", "栃木県", "群馬県", "埼玉県", "千葉県", "東京都", "神奈川県", "新潟県", "富山県", "石川県", "福井県", "山梨県", "長野県", "岐阜県", "静岡県", "愛知県", "三重県", "滋賀県", "京都府", "大阪府", "兵庫県", "奈良県", "和歌山県", "鳥取県", "島根県", "岡山県", "広島県", "山口県", "徳島県", "香川県", "愛媛県", "高知県", "福岡県", "佐賀県", "長崎県", "熊本県", "大分県", "宮崎県", "鹿児島県", "沖縄県"];
   var DEFAULT_DEAL_ITEMS = [
     "早期予約割引",
     "家族割・ファミリープラン",
@@ -538,6 +594,7 @@
   var calView = (function () { var d = new Date(); return { year: d.getFullYear(), month: d.getMonth() }; })();
   var selectedEventId = null;
   var selectedCandidateId = null;
+  var candidateView = { keyword: "", status: "", pref: "", sort: "default" };
 
   function createTempId() {
     return "temp-" + (nextTempId++);
@@ -904,11 +961,67 @@
     });
   }
 
+  function candidatePref(c) {
+    return PREFECTURES.filter(function (p) { return c.name.indexOf(p) === 0; })[0] || CANDIDATE_NO_PREF;
+  }
+
+  function prefRank(pref) {
+    var i = PREFECTURES.indexOf(pref);
+    return i === -1 ? PREFECTURES.length : i;
+  }
+
+  function fillSelect(select, options, current) {
+    select.innerHTML = "";
+    options.forEach(function (o) {
+      var opt = document.createElement("option");
+      opt.value = o.value; opt.textContent = o.label;
+      select.appendChild(opt);
+    });
+    select.value = current;
+  }
+
+  function renderCandidateFilters() {
+    var statusOptions = [{ value: "", label: "すべて" }].concat(CANDIDATE_STATUS_OPTIONS.map(function (s) { return { value: s, label: s }; }));
+    fillSelect(document.getElementById("candidateStatusFilter"), statusOptions, candidateView.status);
+
+    var prefs = {};
+    state.candidates.forEach(function (c) { prefs[candidatePref(c)] = true; });
+    if (candidateView.pref && !prefs[candidateView.pref]) candidateView.pref = "";
+    var prefNames = Object.keys(prefs).sort(function (a, b) { return prefRank(a) - prefRank(b); });
+    var prefOptions = [{ value: "", label: "すべて" }].concat(prefNames.map(function (p) { return { value: p, label: p }; }));
+    fillSelect(document.getElementById("candidatePrefFilter"), prefOptions, candidateView.pref);
+  }
+
+  function visibleCandidates() {
+    var keyword = candidateView.keyword.toLowerCase();
+    var list = state.candidates.filter(function (c) {
+      if (candidateView.status && c.status !== candidateView.status) return false;
+      if (candidateView.pref && candidatePref(c) !== candidateView.pref) return false;
+      return !keyword || (c.name + " " + (c.memo || "")).toLowerCase().indexOf(keyword) !== -1;
+    });
+    var byName = function (a, b) { return a.name.localeCompare(b.name, "ja"); };
+    if (candidateView.sort === "name") list.sort(byName);
+    if (candidateView.sort === "pref") {
+      list.sort(function (a, b) { return prefRank(candidatePref(a)) - prefRank(candidatePref(b)) || byName(a, b); });
+    }
+    if (candidateView.sort === "status") {
+      list.sort(function (a, b) { return CANDIDATE_STATUS_ORDER.indexOf(a.status) - CANDIDATE_STATUS_ORDER.indexOf(b.status) || byName(a, b); });
+    }
+    return list;
+  }
+
   function renderCandidates() {
     var wrap = document.getElementById("candidateList");
     wrap.innerHTML = "";
     document.getElementById("candidateEmpty").style.display = state.candidates.length ? "none" : "block";
-    state.candidates.forEach(function (c) {
+    renderCandidateFilters();
+    var list = visibleCandidates();
+    var total = state.candidates.length;
+    var count = document.getElementById("candidateCount");
+    if (!total) count.textContent = "";
+    else if (!list.length) count.textContent = "条件に合う候補はありません(全" + total + "件)";
+    else count.textContent = list.length === total ? "全" + total + "件" : total + "件中 " + list.length + "件を表示";
+    list.forEach(function (c) {
       var row = document.createElement("div");
       row.className = "deal-row";
       var name = document.createElement("button");
@@ -919,6 +1032,7 @@
       name.addEventListener("click", function () {
         selectedCandidateId = c.id;
         renderCandidateDetail();
+        document.getElementById("candidateDetail").scrollIntoView({ block: "nearest" });
       });
 
       var nameWrap = document.createElement("div");
@@ -1028,9 +1142,15 @@
     return tag;
   }
 
-  function createCalendarDayCell(day, eventsForDay) {
+  function weekendClass(dow) {
+    if (dow === 0) return " sun";
+    if (dow === 6) return " sat";
+    return "";
+  }
+
+  function createCalendarDayCell(day, dow, isToday, eventsForDay) {
     var cell = document.createElement("div");
-    cell.className = "cal-day";
+    cell.className = "cal-day" + weekendClass(dow) + (isToday ? " today" : "");
     var num = document.createElement("div");
     num.className = "d-num"; num.textContent = day;
     cell.appendChild(num);
@@ -1039,9 +1159,9 @@
   }
 
   function renderCalendarDowLabels(grid) {
-    DOW_LABELS.forEach(function (label) {
+    DOW_LABELS.forEach(function (label, i) {
       var el = document.createElement("div");
-      el.className = "cal-dow"; el.textContent = label;
+      el.className = "cal-dow" + weekendClass(i); el.textContent = label;
       grid.appendChild(el);
     });
   }
@@ -1055,15 +1175,18 @@
     var firstDow = new Date(calView.year, calView.month, 1).getDay();
     var daysInMonth = new Date(calView.year, calView.month + 1, 0).getDate();
     var eventsByDate = groupEventsByDate(state.events);
+    var now = new Date();
+    var todayStr = ymd(now.getFullYear(), now.getMonth(), now.getDate());
 
     for (var i = 0; i < firstDow; i++) {
       var blank = document.createElement("div");
-      blank.className = "cal-day empty";
+      blank.className = "cal-day empty" + weekendClass(i);
       grid.appendChild(blank);
     }
     for (var d = 1; d <= daysInMonth; d++) {
       var dateStr = ymd(calView.year, calView.month, d);
-      grid.appendChild(createCalendarDayCell(d, eventsByDate[dateStr] || []));
+      var dow = (firstDow + d - 1) % 7;
+      grid.appendChild(createCalendarDayCell(d, dow, dateStr === todayStr, eventsByDate[dateStr] || []));
     }
   }
 
@@ -1292,6 +1415,17 @@
       renderAll();
     });
 
+    document.getElementById("candidateSearch").addEventListener("input", function (e) {
+      candidateView.keyword = e.target.value.trim();
+      renderCandidates();
+    });
+    [["candidateStatusFilter", "status"], ["candidatePrefFilter", "pref"], ["candidateSort", "sort"]].forEach(function (pair) {
+      document.getElementById(pair[0]).addEventListener("change", function (e) {
+        candidateView[pair[1]] = e.target.value;
+        renderCandidates();
+      });
+    });
+
     document.getElementById("addCandidateBtn").addEventListener("click", function () {
       var name = trimmedFieldValue("candidateName");
       var candidateDupHint = document.getElementById("candidateDupHint");
@@ -1334,12 +1468,14 @@
       if (calView.month < 0) { calView.month = 11; calView.year -= 1; }
       selectedEventId = null;
       renderCalendar(); renderEventDetail(); renderEventList();
+      document.getElementById("calScroll").scrollTop = 0;
     });
     document.getElementById("calNextBtn").addEventListener("click", function () {
       calView.month += 1;
       if (calView.month > 11) { calView.month = 0; calView.year += 1; }
       selectedEventId = null;
       renderCalendar(); renderEventDetail(); renderEventList();
+      document.getElementById("calScroll").scrollTop = 0;
     });
 
     bindEnterToSubmit(["hotelName", "hotelPrice", "hotelCheckin", "hotelCheckout", "hotelGuests"], "addHotelBtn");
