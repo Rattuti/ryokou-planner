@@ -179,7 +179,7 @@
   <div>
     <h1>家族旅行プランナー</h1>
     <p class="subtitle">費用・ホテル・経路・お得情報・イベントカレンダーをまとめて管理します。</p>
-    <p class="hint" id="syncStatus" style="margin-top:0;"></p>
+    <p class="hint" id="syncStatus" style="margin-top:0;" aria-live="polite"></p>
   </div>
 
   <div class="panel">
@@ -323,7 +323,7 @@
       <input type="text" id="dealInput" placeholder="項目を追加(例: ○○旅行会社のクーポン)" aria-label="お得情報の項目を追加">
       <button type="button" class="secondary" id="addDealBtn">追加</button>
     </div>
-    <p class="hint" id="dealDupHint" style="display:none;">同じ名前の項目がすでに登録されています</p>
+    <p class="hint" id="dealDupHint" style="display:none;" aria-live="polite">同じ名前の項目がすでに登録されています</p>
   </div>
 
   <div class="panel">
@@ -348,7 +348,7 @@
       <label>メモ<input type="text" id="candidateMemo" placeholder="任意"></label>
     </div>
     <button type="button" class="secondary" id="addCandidateBtn">追加</button>
-    <p class="hint" id="candidateDupHint" style="display:none;">同じ名前の候補がすでに登録されています</p>
+    <p class="hint" id="candidateDupHint" style="display:none;" aria-live="polite">同じ名前の候補がすでに登録されています</p>
     <div id="candidateDetail"></div>
     <p class="hint" id="candidateCount"></p>
     <div id="candidateList"></div>
