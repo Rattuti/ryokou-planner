@@ -297,6 +297,7 @@
       <label>メモ<input type="text" id="eventNote" placeholder="任意"></label>
     </div>
     <button type="button" id="addEventBtn">追加</button>
+    <p class="hint" id="eventRequiredHint" style="display:none;" aria-live="polite">名称と日付を入力してください</p>
 
     <div class="cal-sticky">
       <div class="row cal-nav">
@@ -560,6 +561,11 @@
   function formatYen(n) {
     if (typeof n !== "number" || isNaN(n)) return "¥0";
     return "¥" + Math.round(n).toLocaleString("ja-JP");
+  }
+
+  // 料金未入力(null)と「0円」を区別して表示する(他の列の"-"表示と揺れを揃える)
+  function formatYenOrDash(n) {
+    return typeof n === "number" && !isNaN(n) ? formatYen(n) : "-";
   }
 
   // ---------- Sync helpers (shared success/error handling for create/update/delete) ----------
@@ -856,7 +862,7 @@
       tdRm.appendChild(createRemoveButton("削除", function () { removeItem("hotels", h, "ホテル"); }));
 
       tr.appendChild(createCell(h.name, { className: "name-cell" }));
-      tr.appendChild(createCell(formatYen(h.price), { label: "料金" }));
+      tr.appendChild(createCell(formatYenOrDash(h.price), { label: "料金" }));
       tr.appendChild(createCell((h.checkin || "-") + " 〜 " + (h.checkout || "-"), { label: "宿泊日程" }));
       tr.appendChild(createCell(h.guests != null ? h.guests + "人" : "-", { label: "人数" }));
       tr.appendChild(tdStatus); tr.appendChild(tdSearch); tr.appendChild(tdRm);
@@ -898,7 +904,7 @@
       tdRm.appendChild(createRemoveButton("削除", function () { removeItem("rentalCars", c, "レンタカー"); }));
 
       tr.appendChild(createCell(c.name, { className: "name-cell" }));
-      tr.appendChild(createCell(formatYen(c.price), { label: "料金" }));
+      tr.appendChild(createCell(formatYenOrDash(c.price), { label: "料金" }));
       tr.appendChild(createCell((c.start || "-") + " 〜 " + (c.end || "-"), { label: "利用期間" }));
       tr.appendChild(createCell(c.carClass || "-", { label: "車種" }));
       tr.appendChild(tdStatus); tr.appendChild(tdSearch); tr.appendChild(tdRm);
@@ -919,7 +925,7 @@
 
       tr.appendChild(createCell(r.name, { className: "name-cell" }));
       tr.appendChild(createCell(r.method, { label: "手段" }));
-      tr.appendChild(createCell(formatYen(r.cost), { label: "費用" }));
+      tr.appendChild(createCell(formatYenOrDash(r.cost), { label: "費用" }));
       tr.appendChild(createCell(r.minutes != null ? r.minutes + "分" : "-", { label: "所要時間" }));
       tr.appendChild(tdRm);
       body.appendChild(tr);
@@ -938,7 +944,7 @@
 
       tr.appendChild(createCell(e.name, { className: "name-cell" }));
       tr.appendChild(createCell(e.category, { label: "カテゴリ" }));
-      tr.appendChild(createCell(formatYen(e.amount), { label: "金額" }));
+      tr.appendChild(createCell(formatYenOrDash(e.amount), { label: "金額" }));
       tr.appendChild(tdRm);
       body.appendChild(tr);
     });
@@ -1485,7 +1491,9 @@
     document.getElementById("addEventBtn").addEventListener("click", function () {
       var name = trimmedFieldValue("eventName");
       var date = fieldValue("eventDate");
-      if (!name || !date) return;
+      var requiredHint = document.getElementById("eventRequiredHint");
+      if (!name || !date) { requiredHint.style.display = "block"; return; }
+      requiredHint.style.display = "none";
       var ev = {
         id: createTempId(), notionId: null,
         name: name, date: date,
