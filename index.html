@@ -1449,6 +1449,7 @@
       var input = document.getElementById("dealInput");
       var name = input.value.trim();
       var dupHint = document.getElementById("dealDupHint");
+      dupHint.style.display = "none";
       if (!name) return;
       if (state.deals.some(function (d) { return d.name === name; })) {
         dupHint.style.display = "block";
@@ -1475,6 +1476,7 @@
     document.getElementById("addCandidateBtn").addEventListener("click", function () {
       var name = trimmedFieldValue("candidateName");
       var candidateDupHint = document.getElementById("candidateDupHint");
+      candidateDupHint.style.display = "none";
       if (!name) return;
       if (state.candidates.some(function (c) { return c.name === name; })) {
         candidateDupHint.style.display = "block";
